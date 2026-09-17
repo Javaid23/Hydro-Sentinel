@@ -4,6 +4,7 @@ which are produced by scripts/train.py and scripts/preprocess.py and are git-ign
 import pytest
 
 from hydrosentinel import config as C
+from hydrosentinel.assess import CONFIDENCE
 
 pytestmark = pytest.mark.skipif(
     not (C.MODELS_DIR / "manifest.json").exists() or not (C.DATA_PROCESSED / "observations.parquet").exists(),
@@ -33,7 +34,9 @@ def test_assessment_shape_and_invariants(client):
     assert set(a["indicators"]) == set(C.TARGETS)
     for ind in a["indicators"].values():
         assert ind["interval"]["lower"] <= ind["prediction"] <= ind["interval"]["upper"]
-        assert ind["validation_tier"] == "site_seen" and ind["confidence"] == "Moderate"
+        # tiers are per indicator: a site rich in turbidity history may have no chl-a history
+        assert ind["validation_tier"] in ("site_seen", "basin_seen")
+        assert ind["confidence"] == CONFIDENCE[ind["validation_tier"]][ind["key"]]
         assert len(ind["top_contributions"]) == 5
         if ind["percentile"] is not None:
             assert 0 <= ind["percentile"] <= 100 and ind["status"] in {"Low", "Typical", "Elevated", "High"}
