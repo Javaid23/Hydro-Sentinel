@@ -1,0 +1,66 @@
+{
+  "trained_utc": "2026-09-17T13:49:09+00:00",
+  "alpha": 0.1,
+  "targets": {
+    "turbidity": {
+      "label": "Turbidity",
+      "unit": "FNU",
+      "n_rows": 6160,
+      "n_estimators": 312,
+      "training_basins": [
+        "Delaware",
+        "Illinois",
+        "Trinity",
+        "Upper Colorado",
+        "Willamette"
+      ],
+      "conformal": {
+        "method": "split conformal, absolute residual in log1p space",
+        "alpha": 0.1,
+        "coverage_target": 0.9,
+        "q_hat_log": 0.6093372648363575,
+        "interval_factor": 1.8392120842633253,
+        "n_calibration": 924
+      }
+    },
+    "chlorophyll_a": {
+      "label": "Chlorophyll-a",
+      "unit": "\u00b5g/L",
+      "n_rows": 2349,
+      "n_estimators": 77,
+      "training_basins": [
+        "Delaware",
+        "Illinois",
+        "Trinity",
+        "Willamette"
+      ],
+      "conformal": {
+        "method": "split conformal, absolute residual in log1p space",
+        "alpha": 0.1,
+        "coverage_target": 0.9,
+        "q_hat_log": 1.0662013688716252,
+        "interval_factor": 2.9043260559270734,
+        "n_calibration": 352
+      }
+    },
+    "cdom": {
+      "label": "CDOM (fDOM proxy)",
+      "unit": "\u00b5g/L QSE",
+      "n_rows": 521,
+      "n_estimators": 603,
+      "training_basins": [
+        "Delaware",
+        "Illinois",
+        "Willamette"
+      ],
+      "conformal": {
+        "method": "split conformal, absolute residual in log1p space",
+        "alpha": 0.1,
+        "coverage_target": 0.9,
+        "q_hat_log": 0.7057079490743723,
+        "interval_factor": 2.0252799725970885,
+        "n_calibration": 78
+      }
+    }
+  }
+}

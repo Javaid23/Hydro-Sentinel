@@ -13,16 +13,11 @@ venv/
 .env.*
 !.env.example
 
-# Data — raw USGS release is public (CC0) but large; re-download via docs/DATA.md
+# Data — raw USGS release is public (CC0) but 1.4 GB; re-download via docs/DATA.md.
+# data/processed/ (≈3 MB) and models/ (≈2 MB) ARE tracked so the API deploys from GitHub
+# and the evaluation scripts run without the raw release.
 data/raw/*
 !data/raw/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
-
-# Trained artifacts (bundled into the backend Docker image at build time, not tracked)
-models/*
-!models/.gitkeep
-!models/README.md
 
 # Node / frontend
 node_modules/

@@ -1,0 +1,117 @@
+{
+  "generated_utc": "2026-09-17T13:21:48+00:00",
+  "raw_rows_target_params": 1291747,
+  "distinct_matchups": 14665,
+  "filter": {
+    "max_offset_hours": 3.0,
+    "min_pixels": 5,
+    "pixel_check_bands": [
+      "B02",
+      "B03",
+      "B04",
+      "B08"
+    ],
+    "require_not_truncated": true,
+    "drop_remark_codes": [
+      "<",
+      ">",
+      "e"
+    ],
+    "require_positive": true
+  },
+  "audit": [
+    {
+      "rule": "|offset| <= 3.0 h",
+      "dropped": 197,
+      "remaining": 14468
+    },
+    {
+      "rule": "min n_pixels >= 5 on B02/B03/B04/B08",
+      "dropped": 5154,
+      "remaining": 9314
+    },
+    {
+      "rule": "not truncated at scene edge",
+      "dropped": 0,
+      "remaining": 9314
+    },
+    {
+      "rule": "no remark code in ('<', '>', 'e')",
+      "dropped": 21,
+      "remaining": 9293
+    },
+    {
+      "rule": "value > 0",
+      "dropped": 22,
+      "remaining": 9271
+    },
+    {
+      "rule": "all band means present",
+      "dropped": 241,
+      "remaining": 9030
+    }
+  ],
+  "summary": [
+    {
+      "target": "turbidity",
+      "Delaware": 1442,
+      "Illinois": 1084,
+      "Trinity": 1809,
+      "Upper Colorado": 614,
+      "Willamette": 1211,
+      "total": 6160,
+      "sites": 47,
+      "sites_ge_30": 36
+    },
+    {
+      "target": "chlorophyll_a",
+      "Delaware": 352,
+      "Illinois": 1407,
+      "Trinity": 211,
+      "Upper Colorado": 0,
+      "Willamette": 379,
+      "total": 2349,
+      "sites": 18,
+      "sites_ge_30": 17
+    },
+    {
+      "target": "cdom",
+      "Delaware": 82,
+      "Illinois": 60,
+      "Trinity": 0,
+      "Upper Colorado": 0,
+      "Willamette": 379,
+      "total": 521,
+      "sites": 6,
+      "sites_ge_30": 6
+    }
+  ],
+  "targets": {
+    "turbidity": {
+      "label": "Turbidity",
+      "unit": "FNU",
+      "parm_codes": [
+        63680
+      ],
+      "note": ""
+    },
+    "chlorophyll_a": {
+      "label": "Chlorophyll-a",
+      "unit": "\u00b5g/L",
+      "parm_codes": [
+        32316,
+        32318,
+        62361
+      ],
+      "note": "In-situ fluorometric estimates in \u00b5g/L. RFU codes (32315, 32320) are excluded: relative fluorescence is sensor-specific and not a concentration."
+    },
+    "cdom": {
+      "label": "CDOM (fDOM proxy)",
+      "unit": "\u00b5g/L QSE",
+      "parm_codes": [
+        32295
+      ],
+      "note": "Fluorescent dissolved organic matter (fDOM) as quinine-sulfate equivalents; the in-situ proxy for CDOM. RFU code 32322 excluded (one site, not a concentration)."
+    }
+  }
+}

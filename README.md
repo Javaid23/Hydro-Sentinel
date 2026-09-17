@@ -55,6 +55,14 @@ USGS matched Sentinel-2 aquatic reflectance + continuous water-quality dataset
 (Delaware, Illinois, Trinity, Upper Colorado, Willamette basins, 2015–2024, CC0).
 DOI [10.5066/P1A7T4FV](https://doi.org/10.5066/P1A7T4FV). Details in [docs/DATA.md](docs/DATA.md).
 
+## Deployment
+
+- **Backend → Render** (free tier, Docker): [render.yaml](render.yaml) is a blueprint — connect the repo,
+  set `GROQ_API_KEY` in the dashboard, and point `HS_CORS_ORIGINS` at the frontend URL.
+  Local image: `docker build -f backend/Dockerfile -t hydrosentinel-api . && docker run -p 8000:8000 --env-file backend/.env hydrosentinel-api`
+- **Frontend → Vercel**: import the repo with root directory `frontend`, set `VITE_API_URL` to the Render URL.
+- Free tiers spin down when idle: hit `/health` once before a demo to avoid a 30–60 s cold start.
+
 ## Status
 
 Hackathon window: 16–30 Sep 2026. See commit history for progress.

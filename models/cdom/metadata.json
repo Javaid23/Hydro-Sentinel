@@ -1,0 +1,130 @@
+{
+  "target": "cdom",
+  "label": "CDOM (fDOM proxy)",
+  "unit": "\u00b5g/L QSE",
+  "note": "Fluorescent dissolved organic matter (fDOM) as quinine-sulfate equivalents; the in-situ proxy for CDOM. RFU code 32322 excluded (one site, not a concentration).",
+  "n_rows": 521,
+  "n_fit": 443,
+  "n_calibration": 78,
+  "n_estimators": 603,
+  "log_target": true,
+  "feature_names": [
+    "B01_buf250_mean",
+    "B02_buf250_mean",
+    "B03_buf250_mean",
+    "B04_buf250_mean",
+    "B05_buf250_mean",
+    "B06_buf250_mean",
+    "B07_buf250_mean",
+    "B08_buf250_mean",
+    "B8A_buf250_mean",
+    "B11_buf250_mean",
+    "B12_buf250_mean",
+    "r_red_green",
+    "r_red_blue",
+    "r_green_blue",
+    "r_rededge1_red",
+    "r_nir_red",
+    "r_nir_green",
+    "r_rededge2_rededge1",
+    "r_swir1_red",
+    "ndti",
+    "ndci",
+    "ndwi",
+    "B01_buf250_std",
+    "B02_buf250_std",
+    "B03_buf250_std",
+    "B04_buf250_std",
+    "B05_buf250_std",
+    "B06_buf250_std",
+    "B07_buf250_std",
+    "B08_buf250_std",
+    "B8A_buf250_std",
+    "B11_buf250_std",
+    "B12_buf250_std",
+    "cv_red",
+    "n_mask",
+    "n_l2flag"
+  ],
+  "training_sites": [
+    "14211010",
+    "14211720",
+    "1467200",
+    "441022122193200",
+    "444306122144600",
+    "5586300"
+  ],
+  "training_basins": [
+    "Delaware",
+    "Illinois",
+    "Willamette"
+  ],
+  "site_basin": {
+    "14211010": "Willamette",
+    "14211720": "Willamette",
+    "1467200": "Delaware",
+    "441022122193200": "Willamette",
+    "444306122144600": "Willamette",
+    "5586300": "Illinois"
+  },
+  "site_names": {
+    "14211010": "CLACKAMAS RIVER NEAR OREGON CITY, OR",
+    "14211720": "WILLAMETTE RIVER AT PORTLAND, OR",
+    "1467200": "Delaware River at Penn's Landing, Philadelphia, PA",
+    "441022122193200": "BLUE RIVER LAKE NEAR BLUE RIVER, OR (WQM)",
+    "444306122144600": "DETROIT LAKE AT LOG BOOM BEHIND DETROIT DAM, OR",
+    "5586300": "ILLINOIS RIVER AT FLORENCE, IL"
+  },
+  "site_coords": {
+    "14211010": [
+      45.3792874,
+      -122.5773134
+    ],
+    "14211720": [
+      45.5175,
+      -122.6691667
+    ],
+    "1467200": [
+      39.946402,
+      -75.1393603
+    ],
+    "441022122193200": [
+      44.17319444,
+      -122.3242222
+    ],
+    "444306122144600": [
+      44.7183194,
+      -122.2461389
+    ],
+    "5586300": [
+      39.63275,
+      -90.6076667
+    ]
+  },
+  "reference": {
+    "target": "cdom",
+    "min_site_obs": 30,
+    "sites": {
+      "14211010": 130,
+      "14211720": 138,
+      "1467200": 82,
+      "441022122193200": 58,
+      "444306122144600": 53,
+      "5586300": 60
+    },
+    "basins": {
+      "Delaware": 82,
+      "Illinois": 60,
+      "Willamette": 379
+    }
+  },
+  "conformal": {
+    "method": "split conformal, absolute residual in log1p space",
+    "alpha": 0.1,
+    "coverage_target": 0.9,
+    "q_hat_log": 0.7057079490743723,
+    "interval_factor": 2.0252799725970885,
+    "n_calibration": 78
+  },
+  "trained_utc": "2026-09-17T13:49:34+00:00"
+}

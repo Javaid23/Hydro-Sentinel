@@ -1,0 +1,228 @@
+{
+  "target": "chlorophyll_a",
+  "label": "Chlorophyll-a",
+  "unit": "\u00b5g/L",
+  "note": "In-situ fluorometric estimates in \u00b5g/L. RFU codes (32315, 32320) are excluded: relative fluorescence is sensor-specific and not a concentration.",
+  "n_rows": 2349,
+  "n_fit": 1997,
+  "n_calibration": 352,
+  "n_estimators": 77,
+  "log_target": true,
+  "feature_names": [
+    "B01_buf250_mean",
+    "B02_buf250_mean",
+    "B03_buf250_mean",
+    "B04_buf250_mean",
+    "B05_buf250_mean",
+    "B06_buf250_mean",
+    "B07_buf250_mean",
+    "B08_buf250_mean",
+    "B8A_buf250_mean",
+    "B11_buf250_mean",
+    "B12_buf250_mean",
+    "r_red_green",
+    "r_red_blue",
+    "r_green_blue",
+    "r_rededge1_red",
+    "r_nir_red",
+    "r_nir_green",
+    "r_rededge2_rededge1",
+    "r_swir1_red",
+    "ndti",
+    "ndci",
+    "ndwi",
+    "B01_buf250_std",
+    "B02_buf250_std",
+    "B03_buf250_std",
+    "B04_buf250_std",
+    "B05_buf250_std",
+    "B06_buf250_std",
+    "B07_buf250_std",
+    "B08_buf250_std",
+    "B8A_buf250_std",
+    "B11_buf250_std",
+    "B12_buf250_std",
+    "cv_red",
+    "n_mask",
+    "n_l2flag"
+  ],
+  "training_sites": [
+    "14211010",
+    "14211720",
+    "1427510",
+    "1463500",
+    "294643095035200",
+    "295826095082200",
+    "423784088133401",
+    "441022122193200",
+    "444306122144600",
+    "453027122400000",
+    "5537980",
+    "5538020",
+    "5543010",
+    "5549500",
+    "5553700",
+    "5558300",
+    "5559900",
+    "5586300"
+  ],
+  "training_basins": [
+    "Delaware",
+    "Illinois",
+    "Trinity",
+    "Willamette"
+  ],
+  "site_basin": {
+    "14211010": "Willamette",
+    "14211720": "Willamette",
+    "1427510": "Delaware",
+    "1463500": "Delaware",
+    "294643095035200": "Trinity",
+    "295826095082200": "Trinity",
+    "423784088133401": "Illinois",
+    "441022122193200": "Willamette",
+    "444306122144600": "Willamette",
+    "453027122400000": "Willamette",
+    "5537980": "Illinois",
+    "5538020": "Illinois",
+    "5543010": "Illinois",
+    "5549500": "Illinois",
+    "5553700": "Illinois",
+    "5558300": "Illinois",
+    "5559900": "Illinois",
+    "5586300": "Illinois"
+  },
+  "site_names": {
+    "14211010": "CLACKAMAS RIVER NEAR OREGON CITY, OR",
+    "14211720": "WILLAMETTE RIVER AT PORTLAND, OR",
+    "1427510": "DELAWARE RIVER AT CALLICOON NY",
+    "1463500": "Delaware River at Trenton NJ",
+    "294643095035200": "Lynchburg Res nr CWA Canal Inflow nr Baytown, TX",
+    "295826095082200": "Lk Houston S Union Pacific RR Bridge nr Houston,TX",
+    "423784088133401": "Long Lake at BEN Dock at Long Lake, IL",
+    "441022122193200": "BLUE RIVER LAKE NEAR BLUE RIVER, OR (WQM)",
+    "444306122144600": "DETROIT LAKE AT LOG BOOM BEHIND DETROIT DAM, OR",
+    "453027122400000": "WILLAMETTE RIVER BLW HOLGATE CHANNEL, PORTLAND, OR",
+    "5537980": "DES PLAINES RIVER AT ROUTE 53 AT JOLIET, IL",
+    "5538020": "DES PLAINES RIVER IN LOCK CHANNEL AT ROCKDALE, IL",
+    "5543010": "ILLINOIS RIVER AT SENECA, IL",
+    "5549500": "FOX RIVER NEAR MCHENRY, IL",
+    "5553700": "ILLINOIS RIVER AT STARVED ROCK, IL",
+    "5558300": "ILLINOIS RIVER AT HENRY, IL",
+    "5559900": "ILLINOIS RIVER ABOVE RTE 150 AT PEORIA, IL",
+    "5586300": "ILLINOIS RIVER AT FLORENCE, IL"
+  },
+  "site_coords": {
+    "14211010": [
+      45.3792874,
+      -122.5773134
+    ],
+    "14211720": [
+      45.5175,
+      -122.6691667
+    ],
+    "1427510": [
+      41.75675,
+      -75.0574167
+    ],
+    "1463500": [
+      40.22166667,
+      -74.7780556
+    ],
+    "294643095035200": [
+      29.7785861,
+      -95.0644278
+    ],
+    "295826095082200": [
+      29.97393333,
+      -95.1393833
+    ],
+    "423784088133401": [
+      42.3784,
+      -88.1334
+    ],
+    "441022122193200": [
+      44.17319444,
+      -122.3242222
+    ],
+    "444306122144600": [
+      44.7183194,
+      -122.2461389
+    ],
+    "453027122400000": [
+      45.50748056,
+      -122.6666139
+    ],
+    "5537980": [
+      41.5364722,
+      -88.0836944
+    ],
+    "5538020": [
+      41.5,
+      -88.1069444
+    ],
+    "5543010": [
+      41.29988889,
+      -88.6141944
+    ],
+    "5549500": [
+      42.3100222,
+      -88.2514745
+    ],
+    "5553700": [
+      41.3247564,
+      -88.9839693
+    ],
+    "5558300": [
+      41.10727778,
+      -89.3562222
+    ],
+    "5559900": [
+      40.72503739,
+      -89.5495396
+    ],
+    "5586300": [
+      39.63275,
+      -90.6076667
+    ]
+  },
+  "reference": {
+    "target": "chlorophyll_a",
+    "min_site_obs": 30,
+    "sites": {
+      "14211010": 86,
+      "14211720": 118,
+      "1427510": 77,
+      "1463500": 275,
+      "294643095035200": 99,
+      "295826095082200": 112,
+      "423784088133401": 22,
+      "441022122193200": 58,
+      "444306122144600": 53,
+      "453027122400000": 64,
+      "5537980": 141,
+      "5538020": 172,
+      "5543010": 174,
+      "5549500": 96,
+      "5553700": 343,
+      "5558300": 215,
+      "5559900": 46,
+      "5586300": 198
+    },
+    "basins": {
+      "Delaware": 352,
+      "Illinois": 1407,
+      "Trinity": 211,
+      "Willamette": 379
+    }
+  },
+  "conformal": {
+    "method": "split conformal, absolute residual in log1p space",
+    "alpha": 0.1,
+    "coverage_target": 0.9,
+    "q_hat_log": 1.0662013688716252,
+    "interval_factor": 2.9043260559270734,
+    "n_calibration": 352
+  },
+  "trained_utc": "2026-09-17T13:49:26+00:00"
+}

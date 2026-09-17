@@ -1,0 +1,17 @@
+# Render blueprint: backend as a Docker web service (free tier).
+# Set GROQ_API_KEY in the Render dashboard (never commit it). Update HS_CORS_ORIGINS to the Vercel URL.
+services:
+  - type: web
+    name: hydrosentinel-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: HS_CORS_ORIGINS
+        value: https://hydro-sentinel.vercel.app,http://localhost:5173

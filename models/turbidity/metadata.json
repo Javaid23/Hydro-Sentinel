@@ -1,0 +1,462 @@
+{
+  "target": "turbidity",
+  "label": "Turbidity",
+  "unit": "FNU",
+  "note": "",
+  "n_rows": 6160,
+  "n_fit": 5236,
+  "n_calibration": 924,
+  "n_estimators": 312,
+  "log_target": true,
+  "feature_names": [
+    "B01_buf250_mean",
+    "B02_buf250_mean",
+    "B03_buf250_mean",
+    "B04_buf250_mean",
+    "B05_buf250_mean",
+    "B06_buf250_mean",
+    "B07_buf250_mean",
+    "B08_buf250_mean",
+    "B8A_buf250_mean",
+    "B11_buf250_mean",
+    "B12_buf250_mean",
+    "r_red_green",
+    "r_red_blue",
+    "r_green_blue",
+    "r_rededge1_red",
+    "r_nir_red",
+    "r_nir_green",
+    "r_rededge2_rededge1",
+    "r_swir1_red",
+    "ndti",
+    "ndci",
+    "ndwi",
+    "B01_buf250_std",
+    "B02_buf250_std",
+    "B03_buf250_std",
+    "B04_buf250_std",
+    "B05_buf250_std",
+    "B06_buf250_std",
+    "B07_buf250_std",
+    "B08_buf250_std",
+    "B8A_buf250_std",
+    "B11_buf250_std",
+    "B12_buf250_std",
+    "cv_red",
+    "n_mask",
+    "n_l2flag"
+  ],
+  "training_sites": [
+    "14152000",
+    "14158100",
+    "14211010",
+    "14211720",
+    "1427207",
+    "1438500",
+    "1458500",
+    "1463500",
+    "14670261",
+    "1467200",
+    "1473500",
+    "294643095035200",
+    "295554095093402",
+    "295826095082200",
+    "300032095080501",
+    "382847107120401",
+    "382852107054801",
+    "400853105563701",
+    "401347074003501",
+    "401349074000601",
+    "401350073595201",
+    "401352074002701",
+    "405610074382301",
+    "423784088133401",
+    "441022122193200",
+    "442453122394900",
+    "444306122144600",
+    "5537980",
+    "5538010",
+    "5538020",
+    "5543010",
+    "5545750",
+    "5549500",
+    "5553700",
+    "5558300",
+    "5559900",
+    "5586300",
+    "8062500",
+    "8067000",
+    "8067250",
+    "9058000",
+    "9060799",
+    "9088600",
+    "9092570",
+    "9095500",
+    "9152500",
+    "9163500"
+  ],
+  "training_basins": [
+    "Delaware",
+    "Illinois",
+    "Trinity",
+    "Upper Colorado",
+    "Willamette"
+  ],
+  "site_basin": {
+    "14152000": "Willamette",
+    "14158100": "Willamette",
+    "14211010": "Willamette",
+    "14211720": "Willamette",
+    "1427207": "Delaware",
+    "1438500": "Delaware",
+    "1458500": "Delaware",
+    "1463500": "Delaware",
+    "14670261": "Delaware",
+    "1467200": "Delaware",
+    "1473500": "Delaware",
+    "294643095035200": "Trinity",
+    "295554095093402": "Trinity",
+    "295826095082200": "Trinity",
+    "300032095080501": "Trinity",
+    "382847107120401": "Upper Colorado",
+    "382852107054801": "Upper Colorado",
+    "400853105563701": "Upper Colorado",
+    "401347074003501": "Delaware",
+    "401349074000601": "Delaware",
+    "401350073595201": "Delaware",
+    "401352074002701": "Delaware",
+    "405610074382301": "Delaware",
+    "423784088133401": "Illinois",
+    "441022122193200": "Willamette",
+    "442453122394900": "Willamette",
+    "444306122144600": "Willamette",
+    "5537980": "Illinois",
+    "5538010": "Illinois",
+    "5538020": "Illinois",
+    "5543010": "Illinois",
+    "5545750": "Illinois",
+    "5549500": "Illinois",
+    "5553700": "Illinois",
+    "5558300": "Illinois",
+    "5559900": "Illinois",
+    "5586300": "Illinois",
+    "8062500": "Trinity",
+    "8067000": "Trinity",
+    "8067250": "Trinity",
+    "9058000": "Upper Colorado",
+    "9060799": "Upper Colorado",
+    "9088600": "Upper Colorado",
+    "9092570": "Upper Colorado",
+    "9095500": "Upper Colorado",
+    "9152500": "Upper Colorado",
+    "9163500": "Upper Colorado"
+  },
+  "site_names": {
+    "14152000": "MIDDLE FORK WILLAMETTE RIVER AT JASPER, OR",
+    "14158100": "WILLAMETTE RIVER AT OWOSSO BRIDGE AT EUGENE, OR",
+    "14211010": "CLACKAMAS RIVER NEAR OREGON CITY, OR",
+    "14211720": "WILLAMETTE RIVER AT PORTLAND, OR",
+    "1427207": "DELAWARE RIVER AT LORDVILLE NY",
+    "1438500": "Delaware River at Montague NJ",
+    "1458500": "Delaware River at Frenchtown NJ",
+    "1463500": "Delaware River at Trenton NJ",
+    "14670261": "Delaware River at Pennypack Woods PA",
+    "1467200": "Delaware River at Penn's Landing, Philadelphia, PA",
+    "1473500": "Schuylkill River at Norristown, PA",
+    "294643095035200": "Lynchburg Res nr CWA Canal Inflow nr Baytown, TX",
+    "295554095093402": "Lk Hou at Jack's Ditch (Site 2) nr Houston, TX",
+    "295826095082200": "Lk Houston S Union Pacific RR Bridge nr Houston,TX",
+    "300032095080501": "Lk Houston at FM 1960 nr Huffman, TX",
+    "382847107120401": "BLUE MESA RES WEST OF DRY GULCH NEAR SAPINERO, CO",
+    "382852107054801": "BLUE MESA RESERVOIR IN IOLA BASIN NR GUNNISON CO",
+    "400853105563701": "WILLOW CREEK RESERVOIR NEAR DAM NEAR GRANBY, CO",
+    "401347074003501": "Deal lake at Railroad Bridge at Asbury Park NJ",
+    "401349074000601": "Deal lake DS of Park Ave at Asbury Park NJ",
+    "401350073595201": "Deal Lake at Flume House at Asbury Park NJ",
+    "401352074002701": "Deal Lake 150 ft east of Main St at Interlaken NJ",
+    "405610074382301": "Lk Hopatcong 9600 ft NE of dam at Hopatcong NJ",
+    "423784088133401": "Long Lake at BEN Dock at Long Lake, IL",
+    "441022122193200": "BLUE RIVER LAKE NEAR BLUE RIVER, OR (WQM)",
+    "442453122394900": "FOSTER LAKE BELOW GEDNEY CREEK, AT FOSTER, OR",
+    "444306122144600": "DETROIT LAKE AT LOG BOOM BEHIND DETROIT DAM, OR",
+    "5537980": "DES PLAINES RIVER AT ROUTE 53 AT JOLIET, IL",
+    "5538010": "DES PLAINES RIVER AT ROCKDALE, IL",
+    "5538020": "DES PLAINES RIVER IN LOCK CHANNEL AT ROCKDALE, IL",
+    "5543010": "ILLINOIS RIVER AT SENECA, IL",
+    "5545750": "FOX RIVER NEAR NEW MUNSTER, WI",
+    "5549500": "FOX RIVER NEAR MCHENRY, IL",
+    "5553700": "ILLINOIS RIVER AT STARVED ROCK, IL",
+    "5558300": "ILLINOIS RIVER AT HENRY, IL",
+    "5559900": "ILLINOIS RIVER ABOVE RTE 150 AT PEORIA, IL",
+    "5586300": "ILLINOIS RIVER AT FLORENCE, IL",
+    "8062500": "Trinity Rv nr Rosser, TX",
+    "8067000": "Trinity Rv at Liberty, TX",
+    "8067250": "Trinity Rv at IH 10 nr Wallisville, TX",
+    "9058000": "COLORADO RIVER NEAR KREMMLING, CO",
+    "9060799": "COLORADO RIVER AT CATAMOUNT BRIDGE, CO",
+    "9088600": "COLORADO RIVER ABOVE DIVIDE CREEK NEAR SILT, CO",
+    "9092570": "COLORADO RIVER AT RULISON, CO.",
+    "9095500": "COLORADO RIVER NEAR CAMEO, CO.",
+    "9152500": "GUNNISON RIVER NEAR GRAND JUNCTION, CO.",
+    "9163500": "COLORADO RIVER NEAR COLORADO-UTAH STATE LINE"
+  },
+  "site_coords": {
+    "14152000": [
+      43.99818166,
+      -122.9059126
+    ],
+    "14158100": [
+      44.09166667,
+      -123.116111
+    ],
+    "14211010": [
+      45.3792874,
+      -122.5773134
+    ],
+    "14211720": [
+      45.5175,
+      -122.6691667
+    ],
+    "1427207": [
+      41.86727778,
+      -75.21375
+    ],
+    "1438500": [
+      41.30916667,
+      -74.79527778
+    ],
+    "1458500": [
+      40.5261111,
+      -75.065
+    ],
+    "1463500": [
+      40.22166667,
+      -74.7780556
+    ],
+    "14670261": [
+      40.0385,
+      -74.9936111
+    ],
+    "1467200": [
+      39.946402,
+      -75.1393603
+    ],
+    "1473500": [
+      40.11555556,
+      -75.3561111
+    ],
+    "294643095035200": [
+      29.7785861,
+      -95.0644278
+    ],
+    "295554095093402": [
+      29.93825,
+      -95.1667778
+    ],
+    "295826095082200": [
+      29.97393333,
+      -95.1393833
+    ],
+    "300032095080501": [
+      30.00888889,
+      -95.1348611
+    ],
+    "382847107120401": [
+      38.47975,
+      -107.2012222
+    ],
+    "382852107054801": [
+      38.4807111,
+      -107.0901806
+    ],
+    "400853105563701": [
+      40.14805556,
+      -105.9436111
+    ],
+    "401347074003501": [
+      40.2296111,
+      -74.00977778
+    ],
+    "401349074000601": [
+      40.23030556,
+      -74.0015833
+    ],
+    "401350073595201": [
+      40.2305833,
+      -73.9977222
+    ],
+    "401352074002701": [
+      40.23116667,
+      -74.0075556
+    ],
+    "405610074382301": [
+      40.9362222,
+      -74.63975
+    ],
+    "423784088133401": [
+      42.3784,
+      -88.1334
+    ],
+    "441022122193200": [
+      44.17319444,
+      -122.3242222
+    ],
+    "442453122394900": [
+      44.4148361,
+      -122.6636167
+    ],
+    "444306122144600": [
+      44.7183194,
+      -122.2461389
+    ],
+    "5537980": [
+      41.5364722,
+      -88.0836944
+    ],
+    "5538010": [
+      41.505,
+      -88.0997222
+    ],
+    "5538020": [
+      41.5,
+      -88.1069444
+    ],
+    "5543010": [
+      41.29988889,
+      -88.6141944
+    ],
+    "5545750": [
+      42.61085116,
+      -88.225923
+    ],
+    "5549500": [
+      42.3100222,
+      -88.2514745
+    ],
+    "5553700": [
+      41.3247564,
+      -88.9839693
+    ],
+    "5558300": [
+      41.10727778,
+      -89.3562222
+    ],
+    "5559900": [
+      40.72503739,
+      -89.5495396
+    ],
+    "5586300": [
+      39.63275,
+      -90.6076667
+    ],
+    "8062500": [
+      32.42652988,
+      -96.4630415
+    ],
+    "8067000": [
+      30.05771539,
+      -94.8182567
+    ],
+    "8067250": [
+      29.83707778,
+      -94.7635944
+    ],
+    "9058000": [
+      40.03665248,
+      -106.4400324
+    ],
+    "9060799": [
+      39.8911,
+      -106.8316944
+    ],
+    "9088600": [
+      39.54678889,
+      -107.5985333
+    ],
+    "9092570": [
+      39.49414529,
+      -107.9389593
+    ],
+    "9095500": [
+      39.2391463,
+      -108.2661946
+    ],
+    "9152500": [
+      38.98331575,
+      -108.4506446
+    ],
+    "9163500": [
+      39.13276047,
+      -109.0270546
+    ]
+  },
+  "reference": {
+    "target": "turbidity",
+    "min_site_obs": 30,
+    "sites": {
+      "14152000": 38,
+      "14158100": 358,
+      "14211010": 305,
+      "14211720": 368,
+      "1427207": 74,
+      "1438500": 121,
+      "1458500": 184,
+      "1463500": 438,
+      "14670261": 324,
+      "1467200": 82,
+      "1473500": 177,
+      "294643095035200": 442,
+      "295554095093402": 488,
+      "295826095082200": 392,
+      "300032095080501": 350,
+      "382847107120401": 4,
+      "382852107054801": 3,
+      "400853105563701": 50,
+      "401347074003501": 5,
+      "401349074000601": 12,
+      "401350073595201": 8,
+      "401352074002701": 4,
+      "405610074382301": 13,
+      "423784088133401": 22,
+      "441022122193200": 58,
+      "442453122394900": 31,
+      "444306122144600": 53,
+      "5537980": 149,
+      "5538010": 8,
+      "5538020": 171,
+      "5543010": 174,
+      "5545750": 4,
+      "5549500": 93,
+      "5553700": 147,
+      "5558300": 67,
+      "5559900": 46,
+      "5586300": 203,
+      "8062500": 40,
+      "8067000": 52,
+      "8067250": 45,
+      "9058000": 50,
+      "9060799": 3,
+      "9088600": 111,
+      "9092570": 35,
+      "9095500": 141,
+      "9152500": 86,
+      "9163500": 131
+    },
+    "basins": {
+      "Delaware": 1442,
+      "Illinois": 1084,
+      "Trinity": 1809,
+      "Upper Colorado": 614,
+      "Willamette": 1211
+    }
+  },
+  "conformal": {
+    "method": "split conformal, absolute residual in log1p space",
+    "alpha": 0.1,
+    "coverage_target": 0.9,
+    "q_hat_log": 0.6093372648363575,
+    "interval_factor": 1.8392120842633253,
+    "n_calibration": 924
+  },
+  "trained_utc": "2026-09-17T13:49:22+00:00"
+}

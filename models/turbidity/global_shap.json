@@ -1,0 +1,218 @@
+[
+  {
+    "feature":"B05_buf250_mean",
+    "label":"B05 red edge 1 (705 nm) mean",
+    "mean_abs_shap":0.3311996162,
+    "share":0.2061602175
+  },
+  {
+    "feature":"r_rededge2_rededge1",
+    "label":"red-edge 2 \/ red-edge 1 ratio (B06\/B05)",
+    "mean_abs_shap":0.1669100821,
+    "share":0.1038957089
+  },
+  {
+    "feature":"r_swir1_red",
+    "label":"SWIR 1 \/ red ratio (B11\/B04)",
+    "mean_abs_shap":0.1597055197,
+    "share":0.0994111225
+  },
+  {
+    "feature":"r_red_blue",
+    "label":"red \/ blue ratio (B04\/B02)",
+    "mean_abs_shap":0.1536107808,
+    "share":0.0956173539
+  },
+  {
+    "feature":"B04_buf250_mean",
+    "label":"B04 red (665 nm) mean",
+    "mean_abs_shap":0.095115222,
+    "share":0.0592059121
+  },
+  {
+    "feature":"r_red_green",
+    "label":"red \/ green ratio (B04\/B03)",
+    "mean_abs_shap":0.0910155326,
+    "share":0.0566539988
+  },
+  {
+    "feature":"r_green_blue",
+    "label":"green \/ blue ratio (B03\/B02)",
+    "mean_abs_shap":0.0905606598,
+    "share":0.0563708544
+  },
+  {
+    "feature":"B07_buf250_mean",
+    "label":"B07 red edge 3 (783 nm) mean",
+    "mean_abs_shap":0.0527787358,
+    "share":0.0328529254
+  },
+  {
+    "feature":"B01_buf250_std",
+    "label":"B01 coastal aerosol within-buffer std",
+    "mean_abs_shap":0.0519493297,
+    "share":0.0323366486
+  },
+  {
+    "feature":"n_mask",
+    "label":"valid water pixels in buffer",
+    "mean_abs_shap":0.0402652025,
+    "share":0.0250636861
+  },
+  {
+    "feature":"B03_buf250_mean",
+    "label":"B03 green (560 nm) mean",
+    "mean_abs_shap":0.0317476057,
+    "share":0.0197617784
+  },
+  {
+    "feature":"B12_buf250_mean",
+    "label":"B12 SWIR 2 (2190 nm) mean",
+    "mean_abs_shap":0.027084602,
+    "share":0.0168592203
+  },
+  {
+    "feature":"n_l2flag",
+    "label":"unflagged pixels in buffer",
+    "mean_abs_shap":0.0266954005,
+    "share":0.0166169573
+  },
+  {
+    "feature":"r_nir_green",
+    "label":"NIR \/ green ratio (B08\/B03)",
+    "mean_abs_shap":0.0249799062,
+    "share":0.0155491214
+  },
+  {
+    "feature":"B06_buf250_mean",
+    "label":"B06 red edge 2 (740 nm) mean",
+    "mean_abs_shap":0.0220714472,
+    "share":0.0137387067
+  },
+  {
+    "feature":"r_nir_red",
+    "label":"NIR \/ red ratio (B08\/B04)",
+    "mean_abs_shap":0.0202130787,
+    "share":0.012581937
+  },
+  {
+    "feature":"ndti",
+    "label":"NDTI turbidity index (B04\u2212B03)\/(B04+B03)",
+    "mean_abs_shap":0.02007664,
+    "share":0.0124970088
+  },
+  {
+    "feature":"B03_buf250_std",
+    "label":"B03 green within-buffer std",
+    "mean_abs_shap":0.0187178683,
+    "share":0.0116512207
+  },
+  {
+    "feature":"B11_buf250_mean",
+    "label":"B11 SWIR 1 (1610 nm) mean",
+    "mean_abs_shap":0.01793175,
+    "share":0.0111618899
+  },
+  {
+    "feature":"r_rededge1_red",
+    "label":"red-edge 1 \/ red ratio (B05\/B04)",
+    "mean_abs_shap":0.0161845144,
+    "share":0.010074296
+  },
+  {
+    "feature":"B11_buf250_std",
+    "label":"B11 SWIR 1 within-buffer std",
+    "mean_abs_shap":0.0135364281,
+    "share":0.0084259547
+  },
+  {
+    "feature":"B06_buf250_std",
+    "label":"B06 red edge 2 within-buffer std",
+    "mean_abs_shap":0.0134804351,
+    "share":0.0083911009
+  },
+  {
+    "feature":"B08_buf250_std",
+    "label":"B08 NIR within-buffer std",
+    "mean_abs_shap":0.0129162166,
+    "share":0.0080398945
+  },
+  {
+    "feature":"B12_buf250_std",
+    "label":"B12 SWIR 2 within-buffer std",
+    "mean_abs_shap":0.0115609383,
+    "share":0.0071962811
+  },
+  {
+    "feature":"B8A_buf250_std",
+    "label":"B8A narrow NIR within-buffer std",
+    "mean_abs_shap":0.0102261351,
+    "share":0.0063654128
+  },
+  {
+    "feature":"B08_buf250_mean",
+    "label":"B08 NIR (842 nm) mean",
+    "mean_abs_shap":0.0102094933,
+    "share":0.0063550537
+  },
+  {
+    "feature":"cv_red",
+    "label":"red band coefficient of variation in buffer",
+    "mean_abs_shap":0.0099952426,
+    "share":0.0062216902
+  },
+  {
+    "feature":"B04_buf250_std",
+    "label":"B04 red within-buffer std",
+    "mean_abs_shap":0.0098077441,
+    "share":0.0061049787
+  },
+  {
+    "feature":"B8A_buf250_mean",
+    "label":"B8A narrow NIR (865 nm) mean",
+    "mean_abs_shap":0.0096218623,
+    "share":0.005989274
+  },
+  {
+    "feature":"B05_buf250_std",
+    "label":"B05 red edge 1 within-buffer std",
+    "mean_abs_shap":0.0095502138,
+    "share":0.0059446753
+  },
+  {
+    "feature":"B01_buf250_mean",
+    "label":"B01 coastal aerosol (443 nm) mean",
+    "mean_abs_shap":0.0085502211,
+    "share":0.0053222147
+  },
+  {
+    "feature":"ndwi",
+    "label":"NDWI water index (B03\u2212B08)\/(B03+B08)",
+    "mean_abs_shap":0.007660707,
+    "share":0.0047685229
+  },
+  {
+    "feature":"ndci",
+    "label":"NDCI chlorophyll index (B05\u2212B04)\/(B05+B04)",
+    "mean_abs_shap":0.0072998363,
+    "share":0.0045438935
+  },
+  {
+    "feature":"B02_buf250_std",
+    "label":"B02 blue within-buffer std",
+    "mean_abs_shap":0.0061638709,
+    "share":0.0038367948
+  },
+  {
+    "feature":"B02_buf250_mean",
+    "label":"B02 blue (490 nm) mean",
+    "mean_abs_shap":0.004784469,
+    "share":0.0029781652
+  },
+  {
+    "feature":"B07_buf250_std",
+    "label":"B07 red edge 3 within-buffer std",
+    "mean_abs_shap":0.0023383661,
+    "share":0.0014555514
+  }
+]
