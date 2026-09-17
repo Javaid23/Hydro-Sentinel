@@ -37,6 +37,18 @@ pip install -r requirements.txt
 python scripts/inspect_data.py                   # needs data/raw/*.csv, see docs/DATA.md
 ```
 
+## Quick start (frontend)
+
+```bash
+cd frontend
+npm install
+cp .env.example .env          # VITE_API_URL=http://localhost:8000
+npm run dev                   # http://localhost:5173
+```
+
+Run the API first: `cd backend && .venv/Scripts/uvicorn app.main:app --reload --port 8000`
+(needs `models/` from `scripts/train.py` and `data/processed/` from `scripts/preprocess.py`).
+
 ## Data
 
 USGS matched Sentinel-2 aquatic reflectance + continuous water-quality dataset
