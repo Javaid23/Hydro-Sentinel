@@ -53,3 +53,14 @@ the model's log1p space; this yields multiplicative intervals in original units,
 heavy-tailed targets. Coverage is guaranteed only when calibration and scoring data are
 exchangeable, i.e. for `site_seen`; empirical coverage on LOBO folds is measured and reported so
 the degradation out-of-region is documented rather than assumed.
+
+## D5 — XGBoost remains the served model after the benchmark stage (2026-09-17)
+
+LSTM (site sequences), FT-Transformer and XGB+FTT stacking were evaluated under the baseline's
+site-holdout and LOBO folds ([results/benchmark_findings.md](results/benchmark_findings.md)).
+The turbidity LSTM was the only competitive alternative (+0.05 R²_log LOBO mean, 3 wins / 1 loss /
+1 tie across basins; raw R² 0.90 vs 0.77 on unseen sites). It was not adopted because the margin is
+modest and inconsistent, it requires six prior overpasses at the same location (incompatible with
+single-observation scoring and the regional demonstration mode), and it would forfeit exact SHAP
+and the existing conformal calibration. Recorded as future work: lagged reflectance features for
+XGBoost at sites with history.

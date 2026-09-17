@@ -67,8 +67,11 @@ above:
 - For the **regional demonstration mode** (spec Section 18), the honest framing is already
   required by the spec; these results make it mandatory for chl-a and CDOM.
 
-## Not yet done
+## Follow-ups
 
-- Hyperparameter search (small grid on depth / learning rate / min_child_weight).
-- Feature ablations; SHAP on the final model (spec Section 9 — final model only).
-- LSTM / tabular-transformer / stacking benchmarks (spec Section 3, half-day each).
+- LSTM / FT-Transformer / stacking benchmarks: done — [benchmark_findings.md](benchmark_findings.md)
+  (XGBoost retained; decision D5).
+- SHAP on the final model: done — `models/<target>/global_shap.json`, served per observation.
+- Not done: hyperparameter search (small grid on depth / learning rate / min_child_weight) and
+  feature ablations (`--no-std`, `--no-qa`). Lagged reflectance features for turbidity at sites
+  with history are the most promising next experiment.
