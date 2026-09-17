@@ -1,0 +1,22 @@
+# Core data / modelling
+numpy>=1.26,<3
+pandas>=2.2
+scikit-learn>=1.5
+xgboost>=2.1
+shap>=0.46
+mapie>=0.9
+joblib>=1.4
+pyarrow>=17
+
+# API
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.8
+pydantic-settings>=2.4
+httpx>=0.27
+groq>=0.11
+python-dotenv>=1.0
+
+# Dev / analysis
+matplotlib>=3.9
+pytest>=8
