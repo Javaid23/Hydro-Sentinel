@@ -5,6 +5,7 @@ Writes:
     data/processed/turbidity.parquet
     data/processed/chlorophyll_a.parquet
     data/processed/cdom.parquet
+    data/processed/observations.parquet      (one row per scene × site, all targets' observed values)
     data/processed/preprocess_audit.json     (rows dropped per filter rule, summary counts)
     docs/preprocess_summary.md               (human-readable version of the audit)
 
@@ -41,6 +42,9 @@ def main() -> int:
         out = C.DATA_PROCESSED / f"{key}.parquet"
         t.to_parquet(out, index=False)
         log.info("wrote %s (%s rows)", out.name, f"{len(t):,}")
+    obs = data.build_observation_index(tables)
+    obs.to_parquet(C.DATA_PROCESSED / "observations.parquet", index=False)
+    log.info("wrote observations.parquet (%s scene×site observations, %d sites)", f"{len(obs):,}", obs["site_no"].nunique())
 
     meta = {
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),

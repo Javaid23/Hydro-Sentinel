@@ -146,3 +146,37 @@ def load_processed(key: str, processed_dir: Path = C.DATA_PROCESSED) -> pd.DataF
     if not p.exists():
         raise FileNotFoundError(f"{p} not found — run backend/scripts/preprocess.py first")
     return pd.read_parquet(p)
+
+
+# ----------------------------------------------------------------------------- observation index
+_OBS_KEY = ["scene", "site_no"]
+_OBS_META = ["station_nm", "basin", "huc4", "lat", "lon", "site_tp_cd", "nhd_feature_type", "scene_datetime_utc"]
+
+
+def build_observation_index(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """One row per (scene, site) across all target tables, with bands/QA and observed values.
+
+    The three targets are measured at different sites and overpasses, but every model can be
+    applied to any Sentinel-2 observation. This table is what the API scores: bands + QA for the
+    features, and `observed_<target>` (NaN when that target was not measured) for display and
+    for the leave-one-out reference-distribution rule.
+    """
+    band_cols = C.BAND_MEAN_COLS + C.BAND_STD_COLS + C.BAND_NPIX_COLS + C.SCENE_QA_COLS
+    parts = []
+    for key, t in tables.items():
+        p = t[_OBS_KEY + _OBS_META + band_cols + ["value"]].rename(columns={"value": f"observed_{key}"})
+        parts.append(p)
+    obs = pd.concat(parts, ignore_index=True)
+    agg = {c: "first" for c in _OBS_META + band_cols}
+    agg.update({f"observed_{k}": "first" for k in tables})
+    obs = obs.groupby(_OBS_KEY, as_index=False).agg(agg)
+    obs["observation_id"] = obs["site_no"] + "_" + obs["scene_datetime_utc"].dt.strftime("%Y%m%dT%H%M%S")
+    obs = obs.sort_values(["site_no", "scene_datetime_utc"]).reset_index(drop=True)
+    return obs
+
+
+def load_observations(processed_dir: Path = C.DATA_PROCESSED) -> pd.DataFrame:
+    p = processed_dir / "observations.parquet"
+    if not p.exists():
+        raise FileNotFoundError(f"{p} not found — run backend/scripts/preprocess.py first")
+    return pd.read_parquet(p)
