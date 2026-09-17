@@ -63,6 +63,13 @@ DOI [10.5066/P1A7T4FV](https://doi.org/10.5066/P1A7T4FV). Details in [docs/DATA.
 - **Frontend → Vercel**: import the repo with root directory `frontend`, set `VITE_API_URL` to the Render URL.
 - Free tiers spin down when idle: hit `/health` once before a demo to avoid a 30–60 s cold start.
 
+## How it works, and how honest it is
+
+Start at [docs/PIPELINE.md](docs/PIPELINE.md) — a step-by-step trace from the USGS release to
+the dashboard, with the file that does each step and the document that records what was found.
+Headline evaluation results are in [docs/results/model_findings.md](docs/results/model_findings.md);
+spec deviations and their reasoning in [docs/decisions.md](docs/decisions.md).
+
 ## Status
 
 Hackathon window: 16–30 Sep 2026. See commit history for progress.
