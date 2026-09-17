@@ -149,7 +149,11 @@ _explanations: dict[tuple[str, str], tuple[dict | None, str | None]] = {}
 
 
 def _cached_explanation(observation_id: str, result: dict) -> tuple[dict | None, str | None]:
+    """Cache successful explanations per observation; failures are retried on the next request."""
     key = (observation_id, result["model_version"])
     if key not in _explanations:
-        _explanations[key] = llm.explain(result)
+        out, err = llm.explain(result)
+        if err is not None:
+            return None, err
+        _explanations[key] = (out, None)
     return _explanations[key]

@@ -35,11 +35,12 @@ export default function App() {
     }).catch((e) => setError(e.message))
   }, [siteId])
 
-  // assessment when the observation changes
+  // assessment when the observation changes (?explain=1 in the URL requests the explanation immediately)
+  const autoExplain = new URLSearchParams(window.location.search).get('explain') === '1'
   useEffect(() => {
     if (!siteId || !obsId) return
     setLoading(true); setError(null)
-    api.assessment(siteId, obsId, false)
+    api.assessment(siteId, obsId, autoExplain)
       .then(setAssessment)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
