@@ -1,0 +1,182 @@
+[
+  {
+    "target": "turbidity",
+    "split": "random",
+    "held_out": "random 20% rows",
+    "n_test": 1232,
+    "coverage": 0.875,
+    "target_coverage": 0.9,
+    "interval_factor": 1.78,
+    "median_width_factor": 3.7
+  },
+  {
+    "target": "turbidity",
+    "split": "site_holdout",
+    "held_out": "10 held-out sites",
+    "n_test": 1148,
+    "coverage": 0.78,
+    "target_coverage": 0.9,
+    "interval_factor": 1.86,
+    "median_width_factor": 3.82
+  },
+  {
+    "target": "turbidity",
+    "split": "lobo",
+    "held_out": "Trinity",
+    "n_test": 1809,
+    "coverage": 0.851,
+    "target_coverage": 0.9,
+    "interval_factor": 1.91,
+    "median_width_factor": 3.95
+  },
+  {
+    "target": "turbidity",
+    "split": "lobo",
+    "held_out": "Delaware",
+    "n_test": 1442,
+    "coverage": 0.719,
+    "target_coverage": 0.9,
+    "interval_factor": 1.81,
+    "median_width_factor": 4.27
+  },
+  {
+    "target": "turbidity",
+    "split": "lobo",
+    "held_out": "Willamette",
+    "n_test": 1211,
+    "coverage": 0.456,
+    "target_coverage": 0.9,
+    "interval_factor": 1.87,
+    "median_width_factor": 4.56
+  },
+  {
+    "target": "turbidity",
+    "split": "lobo",
+    "held_out": "Illinois",
+    "n_test": 1084,
+    "coverage": 0.723,
+    "target_coverage": 0.9,
+    "interval_factor": 1.84,
+    "median_width_factor": 3.96
+  },
+  {
+    "target": "turbidity",
+    "split": "lobo",
+    "held_out": "Upper Colorado",
+    "n_test": 614,
+    "coverage": 0.829,
+    "target_coverage": 0.9,
+    "interval_factor": 1.92,
+    "median_width_factor": 3.91
+  },
+  {
+    "target": "chlorophyll_a",
+    "split": "random",
+    "held_out": "random 20% rows",
+    "n_test": 470,
+    "coverage": 0.913,
+    "target_coverage": 0.9,
+    "interval_factor": 5.06,
+    "median_width_factor": 64.05
+  },
+  {
+    "target": "chlorophyll_a",
+    "split": "site_holdout",
+    "held_out": "4 held-out sites",
+    "n_test": 369,
+    "coverage": 0.575,
+    "target_coverage": 0.9,
+    "interval_factor": 2.84,
+    "median_width_factor": 12.04
+  },
+  {
+    "target": "chlorophyll_a",
+    "split": "lobo",
+    "held_out": "Illinois",
+    "n_test": 1407,
+    "coverage": 0.334,
+    "target_coverage": 0.9,
+    "interval_factor": 2.25,
+    "median_width_factor": 15.35
+  },
+  {
+    "target": "chlorophyll_a",
+    "split": "lobo",
+    "held_out": "Willamette",
+    "n_test": 379,
+    "coverage": 0.063,
+    "target_coverage": 0.9,
+    "interval_factor": 2.36,
+    "median_width_factor": 7.03
+  },
+  {
+    "target": "chlorophyll_a",
+    "split": "lobo",
+    "held_out": "Delaware",
+    "n_test": 352,
+    "coverage": 0.423,
+    "target_coverage": 0.9,
+    "interval_factor": 3.17,
+    "median_width_factor": 16.12
+  },
+  {
+    "target": "chlorophyll_a",
+    "split": "lobo",
+    "held_out": "Trinity",
+    "n_test": 211,
+    "coverage": 0.896,
+    "target_coverage": 0.9,
+    "interval_factor": 3.14,
+    "median_width_factor": 13.74
+  },
+  {
+    "target": "cdom",
+    "split": "random",
+    "held_out": "random 20% rows",
+    "n_test": 104,
+    "coverage": 0.923,
+    "target_coverage": 0.9,
+    "interval_factor": 1.93,
+    "median_width_factor": 4.25
+  },
+  {
+    "target": "cdom",
+    "split": "site_holdout",
+    "held_out": "2 held-out sites",
+    "n_test": 268,
+    "coverage": 0.687,
+    "target_coverage": 0.9,
+    "interval_factor": 3.93,
+    "median_width_factor": 17.95
+  },
+  {
+    "target": "cdom",
+    "split": "lobo",
+    "held_out": "Willamette",
+    "n_test": 379,
+    "coverage": 0.0,
+    "target_coverage": 0.9,
+    "interval_factor": 1.49,
+    "median_width_factor": 2.28
+  },
+  {
+    "target": "cdom",
+    "split": "lobo",
+    "held_out": "Delaware",
+    "n_test": 82,
+    "coverage": 0.293,
+    "target_coverage": 0.9,
+    "interval_factor": 1.52,
+    "median_width_factor": 2.43
+  },
+  {
+    "target": "cdom",
+    "split": "lobo",
+    "held_out": "Illinois",
+    "n_test": 60,
+    "coverage": 0.217,
+    "target_coverage": 0.9,
+    "interval_factor": 1.71,
+    "median_width_factor": 3.09
+  }
+]
