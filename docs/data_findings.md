@@ -1,0 +1,118 @@
+# Data findings and preprocessing decisions
+
+Source: USGS release 10.5066/P1A7T4FV, files `Matched_WQ_S2_1.csv` + `Matched_WQ_S2_2.csv`
+(1,748,467 rows, 85 columns). Full machine-generated report: [data_inspection.md](data_inspection.md).
+Counts below were produced on 2026-09-17 by `backend/scripts/inspect_data.py` and a scratch analysis
+that is reproduced by `backend/scripts/preprocess.py`.
+
+## 1. What the release actually is
+
+- **Long format.** One row per *Sentinel-2 scene × site × water-quality parameter × sonde reading*.
+  The measured value is `MeasurementValue`; the constituent is `parm_cd` / `parm_nm` / `parm_unit`.
+  Sentinel-2 reflectance is repeated on every row.
+- **Every overpass is matched to every continuous-sonde reading within ±12 h** (15-min sondes → up to
+  ~96 rows per scene). 100 % of rows share their (scene, site, parm_cd) with other rows. The number of
+  genuinely distinct matchups is **15,732** (scene × site × target), not 1.7 M.
+- **Reflectance columns:** bands B01–B08, B8A, B11, B12; per band `_n_pixels`, `_center`,
+  `_buf250_mean`, `_buf250_std`, `_buf250_med`. Values are scaled integers (median ≈ 250–380,
+  i.e. ≈ ×10⁴ reflectance). 21 % of rows have no valid pixels at all.
+- **Grouping keys:** `site_no` (59 sites), `huc4` (8 codes → 5 basins), `scene`, `Lat`/`Long`.
+- **QA columns:** `MeasurementCd` (A = approved 60 %, P = provisional 39 %, plus `<`, `>`, `e`
+  remark codes on < 0.1 %), `truncated`, `l2flag_center`, `n_l2flag`, `n_mask`.
+- Time span: 2015-08-02 → 2024-09-29; heavily weighted to 2022–2024.
+
+## 2. Parameter codes → targets
+
+| Target | `parm_cd` used | Unit | Excluded codes and why |
+|---|---|---|---|
+| **Turbidity** | `63680` | FNU | — (only turbidity code present) |
+| **Chlorophyll-a** | `32316`, `32318`, `62361` | µg/L | `32315`, `32320` are **RFU** (sensor-relative fluorescence, not a concentration; not comparable across sites/sensors) |
+| **CDOM** | `32295` (fDOM) | µg/L QSE | `32322` is RFU and exists at one site only |
+
+Not water-quality targets, dropped: `80297` (sediment load), `99246`, `99409` (regression-estimated SSC).
+
+CDOM is measured as **fDOM** (fluorescent dissolved organic matter) — the in-situ proxy USGS sondes
+record. The system should label the indicator "CDOM (fDOM proxy)" rather than claim a direct CDOM
+absorption measurement.
+
+## 3. Basin mapping (LOBO groups)
+
+| `huc4` | Basin | Note |
+|---|---|---|
+| 204 | Delaware | |
+| 712, 713 | Illinois | |
+| 1203 | Trinity | Trinity River sites |
+| **1204** | **Trinity** | Lake Houston / Lynchburg Reservoir (San Jacinto HUC). Not in the release title's list but these sites receive Trinity River water and USGS bundles them with Trinity. Narrowest decision: keep them in the Texas group rather than create a sixth basin with 4 sites. |
+| 1401, 1402 | Upper Colorado | |
+| 1709 | Willamette | |
+
+## 4. Matchup collapse and filters
+
+Applied in `backend/scripts/preprocess.py`, in this order:
+
+1. **Nearest reading per overpass.** For each (scene, site, target) keep the single sonde reading
+   closest in time to `scene_datetime_UTC`. Median nearest offset is 4 min; p99 ≈ 4 h.
+2. **|sample − scene| ≤ 3 h.** Drops 1.4 %.
+3. **Valid pixels.** `min(B02, B03, B04, B08 n_pixels) ≥ 5` and `truncated == 0`. This is the
+   dominant filter (≈ 40 % of matchups are cloud/land-masked to < 5 pixels). Sensitivity:
+
+   | min pixels | turbidity | chl-a | fDOM |
+   |---|---|---|---|
+   | 1 | 7,667 | 2,577 | 701 |
+   | 3 | 6,601 | 2,428 | 528 |
+   | **5** | **6,347** | **2,403** | **521** |
+   | 10 | 5,751 | 2,294 | 389 |
+   | 20 | 4,977 | 2,242 | 382 |
+
+   `l2flag_center == 1` is **not** required: it would discard ~60 % of remaining rows, and the
+   buffer statistics are already computed only over masked, valid pixels.
+4. **Remark codes.** Drop rows whose `MeasurementCd` contains `<`, `>` (censored) or `e`
+   (estimated). Approved (A) and provisional (P) are both kept, with the code retained as a column.
+5. **Value > 0.** Drops ≤ 0 readings (sensor artefacts; also required for log transforms).
+6. **All 11 band means present.** B01/B11/B12 (60 m / 20 m bands) are occasionally missing when
+   the 10 m bands are fine; drops 241 rows so every model sees the same feature set.
+
+## 5. Usable sample sizes (after all filters — actual `preprocess.py` output)
+
+| Basin | Turbidity | Chl-a (µg/L) | fDOM (QSE) |
+|---|---|---|---|
+| Delaware | 1,442 | 352 | 82 |
+| Illinois | 1,084 | 1,407 | 60 |
+| Trinity | 1,809 | 211 | 0 |
+| Upper Colorado | 614 | 0 | 0 |
+| Willamette | 1,211 | 379 | 379 |
+| **Total** | **6,160** | **2,349** | **521** |
+| Sites | 47 | 18 | 6 |
+| Sites with ≥ 30 obs | 36 | 17 | 6 |
+
+Distinct matchups before filtering: 14,665 (target codes only). Per-rule drop counts are in
+[preprocess_summary.md](preprocess_summary.md).
+
+Consequences the rest of the pipeline must respect:
+
+- **Turbidity** is the strongest target: 5-fold LOBO is possible, all basins have ≥ 600 rows.
+- **Chlorophyll-a**: Upper Colorado has no µg/L chlorophyll → LOBO has 4 folds, not 5.
+- **fDOM / CDOM** is small (521 rows, 6 sites, 3 basins → 3 LOBO folds). Expect weak
+  generalisation; the dashboard must surface its wider uncertainty honestly rather than hide it.
+- The three targets are rarely measured at the same site/overpass, so **each target gets its own
+  table and model** (already required by spec Section 5). The stress score combines per-target
+  outputs; it does not require a row with all three measured.
+
+## 6. Feature choice
+
+- Primary features: `{band}_buf250_mean` for the 11 bands. Centre-pixel vs buffer-mean correlation is
+  only 0.33–0.68, meaning single pixels are noisy; the 250 m buffer mean is the robust signal.
+- Also carried: `{band}_buf250_std` (within-buffer heterogeneity) and `n_mask` / `n_l2flag`
+  (scene quality). Whether these help is decided empirically in the model stage.
+- Derived band ratios/indices (e.g. red/green, NIR/red, NDCI-style B05/B04) are added in the
+  feature-engineering step, not here.
+- Not features: `Lat`, `Long`, `site_no`, `huc4`, dates — these would let the model memorise
+  location and defeat LOBO.
+
+## 7. Open items
+
+- Target transform (log1p) for the heavy-tailed turbidity (p50 = 11, p99 = 315, max = 4000) and
+  chl-a — decide during XGBoost baseline by comparing raw vs log fits on validation MAE.
+- Whether to pool provisional (P) with approved (A) records — kept for now; evaluate whether
+  restricting to A changes LOBO metrics.
+- Supplementary Oregon/Ohio/Florida discrete-chl dataset (spec Section 2) not yet inspected.
