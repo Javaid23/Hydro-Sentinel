@@ -64,3 +64,30 @@ modest and inconsistent, it requires six prior overpasses at the same location (
 single-observation scoring and the regional demonstration mode), and it would forfeit exact SHAP
 and the existing conformal calibration. Recorded as future work: lagged reflectance features for
 XGBoost at sites with history.
+
+## D6 — Live mode: on-the-fly extraction from USGS's daily aquatic-reflectance product (2026-09-18)
+
+The labelled release ends September 2024, so the historical dashboard could only score
+2015–2024 overpasses. USGS keeps producing the *same* ACOLITE-DSF product daily on a public S3
+bucket (`usgs-wma-sentinel-2-aqr-acolite-dsf`, CONUS, 20 m grid, int16 ×10⁴). `hydrosentinel/live.py`
+reads only the 25 × 25-pixel window around a point from each band's cloud-optimised GeoTIFF and
+rebuilds the training-table columns with USGS's own rules (250 m circle, `l2_flags == 0`,
+negatives → NaN, per-band n_pixels / mean / std / median), then applies the same ≥ 5-valid-pixel
+quality rule the training data was filtered with, walking back from the newest scene until one
+passes.
+
+**Deviation.** USGS additionally intersected an NHD water mask (rasterised resolvable flowlines /
+waterbodies) that is not included in the release — only the code that builds it. Live mode uses
+`NDWI > 0` from the product's own NDWI layer instead, which is the rule of USGS's alternative
+`aqr_observations_NDWI.py` script. Effect: in a narrow river the NDWI mask may admit a few mixed
+pixels the NHD mask would have excluded. Live extractions are therefore marked as such in the API
+(`mode: "live"`, `extraction_note`).
+
+**Live ground truth.** For USGS sites, the nearest instantaneous sonde reading within ±3 h of the
+overpass is fetched from the NWIS IV service and shown beside the prediction (display only; it
+never feeds the model). This makes a 2026 prediction checkable on screen.
+
+**Coverage.** The product is conterminous-US only, so the regional demonstration mode works for any
+CONUS coordinates (out-of-region tier when outside the five training basins) but not for the Ravi
+River at Lahore. A non-US demo would need a Copernicus Data Space / Earth Engine feed and is not
+wired in; the UI says so explicitly.

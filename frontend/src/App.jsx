@@ -12,6 +12,11 @@ export default function App() {
   const [explaining, setExplaining] = useState(false)
   const [error, setError] = useState(null)
   const [health, setHealth] = useState(null)
+  const [mode, setMode] = useState(() => {                  // 'historical' | 'live' | 'coords'; ?mode= preselects
+    const m = new URLSearchParams(window.location.search).get('mode')
+    return ['historical', 'live', 'coords'].includes(m) ? m : 'historical'
+  })
+  const [coords, setCoords] = useState({ lat: '38.6270', lon: '-90.1794', name: 'Mississippi River at St. Louis, MO' })
 
   // sites once
   useEffect(() => {
@@ -35,24 +40,23 @@ export default function App() {
     }).catch((e) => setError(e.message))
   }, [siteId])
 
-  // assessment when the observation changes (?explain=1 in the URL requests the explanation immediately)
+  // assessment when the observation / mode changes (?explain=1 in the URL requests the explanation immediately)
   const autoExplain = new URLSearchParams(window.location.search).get('explain') === '1'
-  useEffect(() => {
-    if (!siteId || !obsId) return
-    setLoading(true); setError(null)
-    api.assessment(siteId, obsId, autoExplain)
-      .then(setAssessment)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false))
-  }, [siteId, obsId])
-
-  const explain = () => {
-    setExplaining(true)
-    api.assessment(siteId, obsId, true)
-      .then(setAssessment)
-      .catch((e) => setError(e.message))
-      .finally(() => setExplaining(false))
+  const fetchAssessment = (withExplain) => {
+    if (mode === 'historical') return (siteId && obsId) ? api.assessment(siteId, obsId, withExplain) : null
+    if (mode === 'live') return siteId ? api.liveSite(siteId, withExplain) : null
+    return api.liveCoords(Number(coords.lat), Number(coords.lon), coords.name, withExplain)
   }
+  const load = (withExplain, setBusy) => {
+    const p = fetchAssessment(withExplain)
+    if (!p) return
+    setBusy(true); setError(null)
+    p.then(setAssessment).catch((e) => setError(e.message)).finally(() => setBusy(false))
+  }
+  useEffect(() => { if (mode !== 'coords') { setAssessment(null); load(autoExplain, setLoading) } }, [siteId, obsId, mode])
+
+  const explain = () => load(true, setExplaining)
+  const runCoords = () => { setAssessment(null); load(false, setLoading) }
 
   const byBasin = useMemo(() => {
     const m = {}
@@ -72,7 +76,29 @@ export default function App() {
         <div className="flow"><span>Observe</span><span>Predict</span><span>Explain</span><span>Assess</span><span>Act</span></div>
       </header>
 
-      <div className="controls">
+      <div className="modebar">
+        {[['historical', 'Historical (labelled 2015–2024)'], ['live', 'Live — newest Sentinel-2 scene'], ['coords', 'Regional demo — any coordinates']].map(([m, label]) => (
+          <button key={m} className={mode === m ? 'primary' : 'ghost'} onClick={() => setMode(m)}>{label}</button>
+        ))}
+      </div>
+
+      {mode === 'coords' && (
+        <div className="controls coords">
+          <label className="field">Latitude<input value={coords.lat} onChange={(e) => setCoords({ ...coords, lat: e.target.value })} /></label>
+          <label className="field">Longitude<input value={coords.lon} onChange={(e) => setCoords({ ...coords, lon: e.target.value })} /></label>
+          <label className="field">Label<input value={coords.name} onChange={(e) => setCoords({ ...coords, name: e.target.value })} /></label>
+          <button className="primary" disabled={loading} onClick={runCoords}>{loading ? <><span className="spin" />extracting…</> : 'Assess'}</button>
+          <div className="notice warn span-all">
+            <b>Regional Demonstration Mode — using live Sentinel-2 imagery.</b> The models are trained only on five US river basins.
+            Outputs here show the pipeline running end-to-end on a new region; they are <b>not validated</b> there, no historical
+            reference exists so no percentiles or stress score can be computed, and the inputs may be outside the range the
+            models learned from. Imagery source is USGS's CONUS product, so coordinates must be inside the conterminous US;
+            non-US sites (e.g. the Ravi River at Lahore) would need a Copernicus / Earth Engine feed, which is not wired in.
+          </div>
+        </div>
+      )}
+
+      <div className="controls" style={mode === 'coords' ? { display: 'none' } : undefined}>
         <label className="field">Monitoring site
           <select value={siteId} onChange={(e) => setSiteId(e.target.value)}>
             {Object.keys(byBasin).sort().map((b) => (
@@ -86,8 +112,9 @@ export default function App() {
             ))}
           </select>
         </label>
-        <label className="field">Sentinel-2 observation
-          <select value={obsId} onChange={(e) => setObsId(e.target.value)}>
+        <label className="field">{mode === 'live' ? 'Sentinel-2 observation (live)' : 'Sentinel-2 observation'}
+          <select value={obsId} onChange={(e) => setObsId(e.target.value)} disabled={mode === 'live'}>
+            {mode === 'live' && <option value={obsId}>newest usable scene (auto)</option>}
             {[...observations].reverse().map((o) => (
               <option key={o.observation_id} value={o.observation_id}>
                 {fmtDate(o.scene_datetime_utc).slice(0, 16)} · {o.n_mask} px
@@ -102,6 +129,19 @@ export default function App() {
       </div>
 
       {error && <div className="notice err" style={{ marginBottom: 16 }}>{error}</div>}
+
+      {assessment?.mode === 'live' && (
+        <div className="notice" style={{ marginBottom: 16 }}>
+          <b>Live scene:</b> {assessment.observation.scene} · extracted on the fly from {assessment.source}.{' '}
+          {assessment.scenes_tried.filter((t) => !t.usable).length > 0 && (
+            <>Skipped {assessment.scenes_tried.filter((t) => !t.usable).length} newer scene(s): {assessment.scenes_tried.filter((t) => !t.usable).map((t) => `${t.date.slice(0, 10)} (${t.reason})`).join('; ')}. </>
+          )}
+          {Object.values(assessment.live_readings || {}).some(Boolean) && (
+            <>Live USGS sonde readings at the overpass are shown beside the predictions.</>
+          )}
+          <div className="meta" style={{ marginTop: 4 }}>{assessment.extraction_note}</div>
+        </div>
+      )}
 
       {assessment ? (
         <div className="grid">

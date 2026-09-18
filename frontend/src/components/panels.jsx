@@ -69,7 +69,7 @@ export function IndicatorGrid({ a }) {
             </div>
             <div className="value">{fmt(ind.prediction)}<small>{ind.unit}</small></div>
             {ind.observed != null && (
-              <div className="observed">Matched sonde reading: {fmt(ind.observed)} {ind.unit}</div>
+              <div className="observed">{a.mode === 'live' ? 'Live USGS sonde reading' : 'Matched sonde reading'}: {fmt(ind.observed)} {ind.unit}</div>
             )}
             <div className="pbar" role="img" aria-label={`${ind.label} percentile ${ind.percentile ?? 'unavailable'}`}>
               <div className="fill" style={{ width: `${ind.percentile ?? 0}%` }} />
@@ -155,7 +155,7 @@ export function UncertaintyPanel({ a }) {
       <div className="legend" style={{ marginTop: 10 }}>
         <span><i style={{ background: 'var(--seq-600)', borderRadius: '50%' }} />prediction</span>
         <span><i style={{ background: 'var(--seq-200)' }} />90 % interval</span>
-        <span><i style={{ background: 'var(--text-primary)', width: 2 }} />matched sonde reading (if any)</span>
+        <span><i style={{ background: 'var(--text-primary)', width: 2 }} />{a.mode === 'live' ? 'live' : 'matched'} sonde reading (if any)</span>
       </div>
       <div className="notice" style={{ marginTop: 10 }}>
         {Object.values(a.indicators)[0].confidence_note}

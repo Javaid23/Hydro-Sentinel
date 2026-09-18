@@ -7,6 +7,11 @@ turbidity, chlorophyll-a and CDOM from Sentinel-2 aquatic reflectance, scores ho
 current condition is against a site's own history, explains the prediction with SHAP, quantifies
 uncertainty with conformal prediction, and turns the result into plain-language decision support.
 
+Three modes: **Historical** (the labelled 2015–2024 matchups), **Live** (the newest usable
+Sentinel-2 scene from USGS's daily aquatic-reflectance product, extracted on the fly, with the live
+USGS sonde reading beside the prediction), and **Regional demo** (any coordinates in the
+conterminous US, explicitly flagged as out-of-region and unvalidated).
+
 Built for the **OneAquaHealth IEEE Global Hackathon 2026** (Resilience Informatics track;
 secondary: AI-Supported Assessment).
 

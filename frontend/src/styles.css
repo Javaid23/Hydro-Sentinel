@@ -164,3 +164,10 @@ button.ghost { cursor: pointer; }
 .footer { margin-top: 28px; font-size: 12px; color: var(--text-muted); display: flex; gap: 16px; flex-wrap: wrap; }
 .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -2px; margin-right: 6px; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* mode bar + coordinates form */
+.modebar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.modebar button { cursor: pointer; }
+.controls.coords { grid-template-columns: 1fr 1fr 2fr auto; }
+.controls.coords input { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
+.controls.coords .span-all { grid-column: 1 / -1; }

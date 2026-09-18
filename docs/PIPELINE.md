@@ -20,6 +20,7 @@ dashboard shows is produced by steps 1–9; step 10 only puts words around them.
 | 11 | **Production artifacts** — retrain on pooled data, calibrate, bundle | [`backend/scripts/train.py`](../backend/scripts/train.py) | [`models/README.md`](../models/README.md), `models/manifest.json` |
 | 12 | **Assembly** — one observation → predictions + intervals + SHAP + percentiles + score + confidence tiers | [`backend/hydrosentinel/assess.py`](../backend/hydrosentinel/assess.py) | — |
 | 13 | **How the LLM uses those outputs** — receives the assessment dict as text, returns summary / interpretation / ranked actions / caveats; cannot change a number; failures degrade to "explanation unavailable" | [`backend/hydrosentinel/llm.py`](../backend/hydrosentinel/llm.py) | prompt rules in the file |
+| 13b | **Live data path** — newest usable scene from USGS's daily product, windowed COG reads, USGS's masking rules, live NWIS sonde reading for comparison | [`backend/hydrosentinel/live.py`](../backend/hydrosentinel/live.py) | [`decisions.md`](decisions.md) D6 |
 | 14 | **API** — `GET /assessment/{site_id}` returns everything for one dashboard view | [`backend/app/main.py`](../backend/app/main.py), [`schemas.py`](../backend/app/schemas.py) | `/docs` (OpenAPI) |
 | 15 | **Dashboard** — score → indicators → why → how certain → what it means → actions | [`frontend/src/`](../frontend/src/) | — |
 
