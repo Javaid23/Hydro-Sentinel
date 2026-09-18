@@ -10,7 +10,7 @@ export default function App() {
   const [assessment, setAssessment] = useState(null)
   const [loading, setLoading] = useState(false)
   const [explaining, setExplaining] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState(null)          // { message, retryable }
   const [health, setHealth] = useState(null)
   const [mode, setMode] = useState(() => {                  // 'historical' | 'live' | 'coords'; ?mode= preselects
     const m = new URLSearchParams(window.location.search).get('mode')
@@ -33,7 +33,7 @@ export default function App() {
       const full = s.filter((x) => x.targets_observed.length === 3).sort((a, b) => b.n_observations - a.n_observations)
       const busiest = [...s].sort((a, b) => b.n_observations - a.n_observations)
       setSiteId((full[0] || busiest[0])?.site_no || '')
-    }).catch((e) => setError(`Cannot reach the API: ${e.message}`))
+    }).catch((e) => setError({ message: e.message, retryable: true }))
   }, [])
 
   // observations when the site changes
@@ -43,7 +43,7 @@ export default function App() {
     api.observations(siteId, 400).then((o) => {
       setObservations(o)
       setObsId(o[o.length - 1]?.observation_id || '')
-    }).catch((e) => setError(e.message))
+    }).catch((e) => setError({ message: e.message, retryable: !!e.retryable }))
   }, [siteId])
 
   // assessment when the observation / mode changes (?explain=1 in the URL requests the explanation immediately)
@@ -57,8 +57,11 @@ export default function App() {
     const p = fetchAssessment(withExplain)
     if (!p) return
     setBusy(true); setError(null)
-    p.then(setAssessment).catch((e) => setError(e.message)).finally(() => setBusy(false))
+    p.then(setAssessment)
+      .catch((e) => setError({ message: e.message, retryable: !!e.retryable }))
+      .finally(() => setBusy(false))
   }
+  const retry = () => load(false, setLoading)
   useEffect(() => {
     setAssessment(null); setError(null)
     if (mode !== 'coords') load(autoExplain, setLoading)
@@ -148,10 +151,18 @@ export default function App() {
         <div className="meta">
           {site ? <><b>{site.basin}</b> basin · {site.lat.toFixed(3)}, {site.lon.toFixed(3)}<br />ground truth: {site.targets_observed.join(', ') || 'none'}</> : null}
         </div>
-        <div className="meta">{loading ? <><span className="spin" />assessing…</> : null}</div>
+        <div className="meta">{loading ? <><span className="spin" />{mode === 'historical' ? 'assessing…' : 'fetching the newest satellite scene (20–60 s)…'}</> : null}</div>
       </div>
 
-      {error && <div className="notice err" style={{ marginBottom: 16 }}>{error}</div>}
+      {error && (
+        <div className="notice err" style={{ marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ flex: 1 }}>
+            {error.retryable ? <b>Temporary problem. </b> : null}{error.message}
+            {error.retryable && mode !== 'historical' ? ' Live imagery is fetched from public satellite archives on the fly; brief network hiccups happen.' : ''}
+          </span>
+          {error.retryable && <button className="primary" disabled={loading} onClick={retry}>{loading ? 'Retrying…' : 'Retry'}</button>}
+        </div>
+      )}
 
       {assessment?.mode === 'live' && (() => {
         const skipped = assessment.scenes_tried.filter((t) => !t.usable)
@@ -192,7 +203,7 @@ export default function App() {
           <UncertaintyPanel a={assessment} />
           <ExplanationPanel a={assessment} loading={explaining} onExplain={explain} />
         </div>
-      ) : !error && <div className="empty">{loading ? 'Loading assessment…' : mode === 'coords' ? 'Enter coordinates inside the conterminous US and press Assess.' : 'Select a site to begin.'}</div>}
+      ) : !error && <div className="empty">{loading ? (mode === 'historical' ? 'Loading assessment…' : 'Finding the newest cloud-free scene and reading the pixels around this point…') : mode === 'coords' ? 'Pick a river preset or enter coordinates, then press Assess.' : 'Select a site to begin.'}</div>}
 
       <footer className="footer">
         <span>Current-condition estimate from a single Sentinel-2 overpass — not a forecast.</span>

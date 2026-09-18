@@ -55,6 +55,7 @@
 }
 
 * { box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: hidden; }
 body { margin: 0; background: var(--surface-0); color: var(--text-primary); }
 a { color: var(--accent); }
 
@@ -66,23 +67,28 @@ a { color: var(--accent); }
 .flow { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .flow span + span::before { content: "→"; margin-right: 6px; }
 
-.controls { display: grid; grid-template-columns: 1.6fr 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 20px; }
-@media (max-width: 800px) { .controls { grid-template-columns: 1fr; } }
-label.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-secondary); }
+.controls { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; margin-bottom: 20px; }
+.controls > * { min-width: 0; }
+@media (max-width: 800px) { .controls { grid-template-columns: minmax(0, 1fr); } }
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-secondary); min-width: 0; }
 select, button {
   font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--surface-1); color: var(--text-primary);
 }
+select { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 button.primary { background: var(--accent); color: #fff; border-color: transparent; cursor: pointer; }
 button.primary:disabled { opacity: 0.6; cursor: default; }
 button.ghost { cursor: pointer; }
 
-.grid { display: grid; gap: 16px; grid-template-columns: repeat(12, 1fr); }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
 .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 20px; }
 .card h2 { margin: 0 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); font-weight: 600; }
 .card .sub { margin: 0 0 14px; color: var(--text-muted); font-size: 13px; }
 .span-12 { grid-column: span 12; } .span-8 { grid-column: span 8; } .span-6 { grid-column: span 6; } .span-4 { grid-column: span 4; }
-@media (max-width: 900px) { .span-8, .span-6, .span-4 { grid-column: span 12; } }
+@media (max-width: 900px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .span-12, .span-8, .span-6, .span-4 { grid-column: auto; }
+}
 
 /* hero score */
 .hero { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
@@ -110,8 +116,8 @@ button.ghost { cursor: pointer; }
 .chip.tier { color: var(--text-secondary); font-weight: 500; }
 
 /* indicators */
-.indicators { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-@media (max-width: 900px) { .indicators { grid-template-columns: 1fr; } }
+.indicators { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 900px) { .indicators { grid-template-columns: minmax(0, 1fr); } }
 .indicator { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; background: var(--surface-1); }
 .indicator .name { font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .indicator .value { font-size: 28px; font-weight: 700; margin: 6px 0 0; letter-spacing: -0.02em; }
@@ -178,3 +184,21 @@ details.live-note summary::-webkit-details-marker { display: none; }
 details.live-note code { font-size: 12px; background: var(--surface-1); padding: 1px 4px; border-radius: 4px; }
 
 .controls.coords label.span-all select { width: 100%; }
+
+/* ---- small screens: stack the fixed-width rows, never overflow the viewport ---- */
+.grid > *, .card, .indicator { min-width: 0; }
+.card { overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .app { padding: 16px 12px 48px; }
+  .brand { flex-direction: column; gap: 2px; }
+  .flow { display: none; }
+  .hero { gap: 16px; }
+  .hero .number { font-size: 44px; }
+  .iv-row { grid-template-columns: 1fr; gap: 6px; }
+  .iv-track { height: 22px; }
+  .shap-row { grid-template-columns: 1fr 56px; row-gap: 2px; }
+  .shap-row .lbl { grid-column: 1 / -1; white-space: normal; }
+  .controls.coords { grid-template-columns: 1fr 1fr; }
+  .controls.coords label.field:nth-of-type(4) { grid-column: 1 / -1; }
+  .modebar button { flex: 1 1 100%; }
+}
