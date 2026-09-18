@@ -7,6 +7,11 @@ shap>=0.46
 joblib>=1.4
 pyarrow>=17
 
+# Live mode: windowed reads of USGS's aquatic-reflectance COGs + tile lookup
+rasterio>=1.4
+pyproj>=3.6
+mgrs>=1.4
+
 # API
 fastapi>=0.115
 uvicorn[standard]>=0.30

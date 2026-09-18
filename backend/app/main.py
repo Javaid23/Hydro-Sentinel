@@ -9,6 +9,10 @@ HydroSentinel API.
     GET /assessment/{site_id}                     full assessment for the latest (or chosen) observation
         ?observation_id=...   score a specific overpass
         ?explain=true         add the LLM explanation (Groq); numeric output is identical either way
+    GET /live/{site_id}                           LIVE: newest usable Sentinel-2 scene from USGS's daily
+                                                  product, extracted on the fly, + live sonde readings
+    GET /live/coords?lat=&lon=                    LIVE at any coordinates (regional demonstration mode;
+                                                  out-of-region, unvalidated)
 
 One call to /assessment renders the whole dashboard view.
 """
@@ -28,7 +32,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import schemas
 from hydrosentinel import config as C
-from hydrosentinel import data, llm
+from hydrosentinel import data, live, llm
 from hydrosentinel.assess import AssessmentService
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
@@ -157,3 +161,57 @@ def _cached_explanation(observation_id: str, result: dict) -> tuple[dict | None,
             return None, err
         _explanations[key] = (out, None)
     return _explanations[key]
+
+
+# ----------------------------------------------------------------------------- live mode
+EXTRACTION_NOTE = ("Bands extracted on the fly from the newest usable scene: 250 m buffer on the 20 m grid, "
+                   "valid = unflagged (l2_flags==0) AND water (NDWI>0). Training data used an additional NHD "
+                   "water mask; see docs/decisions.md D6.")
+
+_live_cache: dict[str, dict] = {}
+
+
+def _live_assess(lat: float, lon: float, site_no: str | None, station_nm: str | None, basin: str | None,
+                 explain: bool, top_k: int, cache_key: str) -> dict:
+    if cache_key in _live_cache:
+        result = dict(_live_cache[cache_key])
+    else:
+        try:
+            obs, tried = live.latest_usable(lat, lon)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        if obs is None:
+            raise HTTPException(503, f"no usable recent scene at this location (cloud/glint/no open water in the last "
+                                     f"{len(tried)} overpasses): " + "; ".join(f"{t['date'][:10]} {t['reason']}" for t in tried))
+        obs.update({"site_no": site_no, "station_nm": station_nm, "basin": basin,
+                    "observation_id": f"live_{site_no or 'coords'}_{obs['scene_datetime_utc']:%Y%m%dT%H%M%S}"})
+        readings = live.nwis_readings_for_targets(site_no, obs["scene_datetime_utc"]) if site_no else {}
+        # matched live readings are display-only; they also drive the leave-one-out rule if the
+        # value happened to be in the reference (it never is for post-2024 scenes)
+        for k, r in readings.items():
+            obs[f"observed_{k}"] = r["value"] if r else np.nan
+        result = state.service.assess(pd.Series(obs), top_k=top_k)
+        result.update({"mode": "live", "scenes_tried": tried, "live_readings": readings,
+                       "extraction_note": EXTRACTION_NOTE})
+        _live_cache[cache_key] = dict(result)
+    if explain:
+        result["llm_explanation"], result["llm_error"] = _cached_explanation(result["observation"]["observation_id"], result)
+    return result
+
+
+@app.get("/live/coords", response_model=schemas.LiveAssessment)
+def live_coords(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180),
+                name: str | None = None, explain: bool = False, top_k: int = Query(5, ge=1, le=10)):
+    """Regional demonstration mode: any coordinates, no site history → out_of_region tier, no percentiles."""
+    key = f"coords:{lat:.4f},{lon:.4f}"
+    return _live_assess(lat, lon, None, name or f"{lat:.4f}, {lon:.4f}", None, explain, top_k, key)
+
+
+@app.get("/live/{site_id}", response_model=schemas.LiveAssessment)
+def live_site(site_id: str, explain: bool = False, top_k: int = Query(5, ge=1, le=10)):
+    """Live assessment at a training-data site: newest usable scene + the site's own reference history."""
+    s = state.sites[state.sites["site_no"] == site_id]
+    if s.empty:
+        raise HTTPException(404, f"unknown site {site_id}")
+    r = s.iloc[0]
+    return _live_assess(float(r.lat), float(r.lon), site_id, r.station_nm, r.basin, explain, top_k, f"site:{site_id}")

@@ -120,3 +120,28 @@ class GlobalImportance(BaseModel):
 class ModelInfo(BaseModel):
     trained_utc: str
     targets: dict
+
+
+class SceneAttempt(BaseModel):
+    scene: str
+    date: str
+    usable: bool
+    reason: str
+    n_mask: int | None = None
+
+
+class LiveReading(BaseModel):
+    value: float
+    datetime_utc: str
+    offset_hours: float
+    parm_cd: int
+    qualifiers: list[str] = []
+
+
+class LiveAssessment(Assessment):
+    mode: Literal["live"] = "live"
+    source: str = "USGS Sentinel-2 ACOLITE-DSF aquatic reflectance (AWS, updated daily)"
+    scenes_tried: list[SceneAttempt]
+    live_readings: dict[str, LiveReading | None] = Field(default_factory=dict,
+        description="Nearest USGS sonde reading per target at the overpass time (USGS sites only)")
+    extraction_note: str
