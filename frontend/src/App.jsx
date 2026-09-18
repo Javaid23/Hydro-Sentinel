@@ -53,7 +53,10 @@ export default function App() {
     setBusy(true); setError(null)
     p.then(setAssessment).catch((e) => setError(e.message)).finally(() => setBusy(false))
   }
-  useEffect(() => { if (mode !== 'coords') { setAssessment(null); load(autoExplain, setLoading) } }, [siteId, obsId, mode])
+  useEffect(() => {
+    setAssessment(null); setError(null)
+    if (mode !== 'coords') load(autoExplain, setLoading)
+  }, [siteId, obsId, mode])
 
   const explain = () => load(true, setExplaining)
   const runCoords = () => { setAssessment(null); load(false, setLoading) }
@@ -88,13 +91,18 @@ export default function App() {
           <label className="field">Longitude<input value={coords.lon} onChange={(e) => setCoords({ ...coords, lon: e.target.value })} /></label>
           <label className="field">Label<input value={coords.name} onChange={(e) => setCoords({ ...coords, name: e.target.value })} /></label>
           <button className="primary" disabled={loading} onClick={runCoords}>{loading ? <><span className="spin" />extracting…</> : 'Assess'}</button>
-          <div className="notice warn span-all">
-            <b>Regional Demonstration Mode — using live Sentinel-2 imagery.</b> The models are trained only on five US river basins.
-            Outputs here show the pipeline running end-to-end on a new region; they are <b>not validated</b> there, no historical
-            reference exists so no percentiles or stress score can be computed, and the inputs may be outside the range the
-            models learned from. Imagery source is USGS's CONUS product, so coordinates must be inside the conterminous US;
-            non-US sites (e.g. the Ravi River at Lahore) would need a Copernicus / Earth Engine feed, which is not wired in.
-          </div>
+          <details className="notice warn span-all live-note">
+            <summary>
+              <b>Regional Demonstration Mode — live Sentinel-2 imagery, unvalidated location.</b> The models were trained on five US
+              river basins only; here they run end-to-end on a new place with no local history, so no percentiles or stress score are
+              possible and confidence is low. <span className="meta">— details</span>
+            </summary>
+            <div className="meta" style={{ marginTop: 8 }}>
+              Inputs may fall outside the range the models learned from, and there is no ground truth to check against.
+              Imagery comes from USGS's conterminous-US product, so coordinates must be inside the lower 48 states; a non-US site
+              such as the Ravi River at Lahore would need a Copernicus / Earth Engine feed, which is not wired in.
+            </div>
+          </details>
         </div>
       )}
 
@@ -163,7 +171,7 @@ export default function App() {
           <UncertaintyPanel a={assessment} />
           <ExplanationPanel a={assessment} loading={explaining} onExplain={explain} />
         </div>
-      ) : !error && <div className="empty">{loading ? 'Loading assessment…' : 'Select a site to begin.'}</div>}
+      ) : !error && <div className="empty">{loading ? 'Loading assessment…' : mode === 'coords' ? 'Enter coordinates inside the conterminous US and press Assess.' : 'Select a site to begin.'}</div>}
 
       <footer className="footer">
         <span>Current-condition estimate from a single Sentinel-2 overpass — not a forecast.</span>
