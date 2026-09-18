@@ -1,4 +1,5 @@
 import React from 'react'
+import { Gauge, ReferenceHistogram, ImportanceChart } from './charts.jsx'
 
 const fmt = (v, d = 2) => (v == null || Number.isNaN(v) ? '—' : Number(v).toFixed(v >= 100 ? 0 : d))
 const fmtDate = (iso) => (iso ? new Date(iso).toUTCString().replace(':00 GMT', ' UTC') : '—')
@@ -25,12 +26,11 @@ const TIER_TEXT = {
 // ---------------------------------------------------------------- 1. Current assessment
 export function StressCard({ a }) {
   const s = a.stress
-  const cls = s.score == null ? '' : s.score >= 70 ? 'high' : s.score >= 40 ? 'mid' : 'low'
   const o = a.observation
   if (s.score == null) {
     // No site or basin history to rank against (out-of-region): say so instead of drawing an empty gauge.
     return (
-      <section className="card span-12">
+      <section className="card span-8">
         <h2>Current assessment</h2>
         <div className="hero">
           <div>
@@ -51,19 +51,24 @@ export function StressCard({ a }) {
     )
   }
   return (
-    <section className="card span-12">
+    <section className="card span-8">
       <h2>Current assessment</h2>
       <p className="sub">Freshwater Stress Score — how unusual the predicted conditions are relative to this site's own history. Not a validated ecological health index.</p>
       <div className="hero">
-        <div>
-          <div className="number">{s.score == null ? '—' : Math.round(s.score)}<small> / 100</small></div>
-          <div className="label">{s.label || 'No reference available'}</div>
-        </div>
-        <div style={{ flex: 1, minWidth: 260 }}>
-          <div className="scorebar" role="img" aria-label={`Stress score ${s.score ?? 'unavailable'} of 100`}>
-            <div className={`fill ${cls}`} style={{ width: `${s.score ?? 0}%` }} />
+        <Gauge score={s.score} label={s.label} />
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div className="bands-row">
+            <span className="band low">0–40 Lower</span><span className="band mid">40–70 Moderate</span><span className="band high">70–100 Higher</span>
           </div>
-          <div className="ticks"><span>0 · Lower</span><span>40 · Moderate</span><span>70 · Higher</span><span>100</span></div>
+          <div className="mini-indicators">
+            {Object.values(a.indicators).map((ind) => (
+              <div key={ind.key} className="mini">
+                <div className="mini-label">{ind.label}</div>
+                <div className="mini-val">{ind.percentile == null ? '—' : `${Math.round(ind.percentile)}th`}</div>
+                <div className="mini-sub">{ind.status || 'no reference'}</div>
+              </div>
+            ))}
+          </div>
           <div className="meta" style={{ marginTop: 8 }}>
             <b>{o.station_nm || 'Unnamed location'}</b> · {o.basin || 'unknown basin'} · Sentinel-2 overpass {fmtDate(o.scene_datetime_utc)}
             <br />
@@ -78,7 +83,7 @@ export function StressCard({ a }) {
 }
 
 // ---------------------------------------------------------------- 2. Indicator breakdown
-export function IndicatorGrid({ a }) {
+export function IndicatorGrid({ a, history }) {
   return (
     <section className="card span-12">
       <h2>Indicator breakdown</h2>
@@ -105,6 +110,12 @@ export function IndicatorGrid({ a }) {
             <div className="chips">
               <Chip kind={`conf-${ind.confidence.split(' ')[0]}`} icon={CONF_ICON[ind.confidence]} text={`${ind.confidence} confidence`} />
             </div>
+            {history?.targets?.[ind.key]?.histogram?.counts?.length > 0 && (
+              <div className="hist">
+                <div className="meta" style={{ fontSize: 11, marginTop: 8 }}>Where this prediction sits in the {ind.reference_level} record (log-spaced bins)</div>
+                <ReferenceHistogram history={history} target={ind.key} value={ind.prediction} status={ind.status} unit={ind.unit} />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -113,7 +124,7 @@ export function IndicatorGrid({ a }) {
 }
 
 // ---------------------------------------------------------------- 3. Why? (SHAP)
-export function ShapPanel({ a }) {
+export function ShapPanel({ a, importance }) {
   return (
     <section className="card span-6">
       <h2>Why? — what drove each prediction</h2>
@@ -143,6 +154,17 @@ export function ShapPanel({ a }) {
           </div>
         )
       })}
+      {importance && (
+        <details className="live-note" style={{ marginTop: 6 }}>
+          <summary className="meta"><b>Overall</b> — which satellite features the models rely on across all training data (mean |SHAP|) — details</summary>
+          {Object.entries(importance).map(([k, feats]) => (
+            <div key={k} style={{ marginTop: 10 }}>
+              <div className="meta"><b>{a.indicators[k]?.label || k}</b></div>
+              <ImportanceChart features={feats} />
+            </div>
+          ))}
+        </details>
+      )}
     </section>
   )
 }

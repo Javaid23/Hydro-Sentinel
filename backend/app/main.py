@@ -32,7 +32,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import schemas
 from hydrosentinel import config as C
-from hydrosentinel import data, live, live_global, llm
+from hydrosentinel import data, features, live, live_global, llm
 from hydrosentinel.assess import AssessmentService
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
@@ -132,6 +132,55 @@ def site_observations(site_id: str, limit: int = Query(50, ge=1, le=1000)):
         )
         for r in o.itertuples()
     ]
+
+
+_history_cache: dict[str, dict] = {}
+
+
+@app.get("/sites/{site_id}/history", response_model=schemas.SiteHistory)
+def site_history(site_id: str):
+    """Everything the history / distribution charts need for one site:
+    per target — observed & model-predicted series over all overpasses, the site (or basin)
+    reference quantiles, a histogram of the reference distribution — plus the site's median
+    spectrum. Predictions here are batch point estimates (no SHAP), cached per site."""
+    if site_id in _history_cache:
+        return _history_cache[site_id]
+    o = _site_obs(site_id)
+    X = features.build_features(o)
+    basin = str(o["basin"].iloc[0])
+    targets = {}
+    for key, art in state.service.targets.items():
+        pred = art.model.predict(X)
+        band = art.conformal.predict_interval(X)
+        obs_col = o[f"observed_{key}"]
+        series = [
+            {"date": pd.Timestamp(d).isoformat(), "observation_id": oid,
+             "observed": None if np.isnan(v) else round(float(v), 3),
+             "predicted": round(float(p), 3), "lower": round(float(lo), 3), "upper": round(float(hi), 3)}
+            for d, oid, v, p, lo, hi in zip(o["scene_datetime_utc"], o["observation_id"], obs_col, pred,
+                                            band["lower"], band["upper"])
+        ]
+        ref, level = art.reference.reference_for(site_id, basin)
+        if ref is not None and len(ref):
+            q = {f"p{int(p)}": round(float(np.percentile(ref, p)), 3) for p in (5, 10, 25, 50, 75, 90, 95)}
+            # log-spaced bins suit the heavy-tailed targets; edges in original units
+            lo_e, hi_e = max(float(ref.min()), 1e-3), float(ref.max()) * 1.05
+            edges = np.geomspace(lo_e, hi_e, 21)
+            counts, _ = np.histogram(ref, bins=edges)
+            hist = {"edges": [round(float(e), 4) for e in edges], "counts": [int(c) for c in counts]}
+        else:
+            q, hist = {}, {"edges": [], "counts": []}
+        targets[key] = {"label": art.meta["label"], "unit": art.meta["unit"], "series": series,
+                        "reference_level": level, "n_reference": int(len(ref)) if ref is not None else 0,
+                        "quantiles": q, "histogram": hist}
+    spectrum = {b: round(float(o[f"{b}_buf250_mean"].median()), 2) for b in C.BANDS}
+    spectrum_iqr = {b: [round(float(o[f"{b}_buf250_mean"].quantile(.25)), 2), round(float(o[f"{b}_buf250_mean"].quantile(.75)), 2)]
+                    for b in C.BANDS}
+    out = {"site_no": site_id, "station_nm": str(o["station_nm"].iloc[0]), "basin": basin,
+           "n_observations": int(len(o)), "targets": targets,
+           "spectrum_median": spectrum, "spectrum_iqr": spectrum_iqr, "band_wavelength_nm": C.BAND_WAVELENGTH_NM}
+    _history_cache[site_id] = out
+    return out
 
 
 @app.get("/assessment/{site_id}", response_model=schemas.Assessment, response_model_exclude_none=False)

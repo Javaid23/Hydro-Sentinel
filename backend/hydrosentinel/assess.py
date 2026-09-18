@@ -136,6 +136,9 @@ class AssessmentService:
                 "site_no": site_no, "station_nm": _opt(row, "station_nm"), "basin": basin,
                 "lat": _opt(row, "lat"), "lon": _opt(row, "lon"),
                 "n_mask": _opt(row, "n_mask"), "n_l2flag": _opt(row, "n_l2flag"),
+                # what the satellite saw: buffer-mean reflectance per band (USGS ×10⁴ scale) for the spectrum chart
+                "bands": {b: _opt(row, f"{b}_buf250_mean") for b in C.BANDS},
+                "band_wavelength_nm": C.BAND_WAVELENGTH_NM,
             },
             "stress": {**score, "name": "Freshwater Stress Score",
                        "description": "Equal-weight mean of indicator percentiles relative to the site's "

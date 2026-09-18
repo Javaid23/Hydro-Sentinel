@@ -55,6 +55,8 @@ class Stress(BaseModel):
 
 
 class Observation(BaseModel):
+    bands: dict[str, float | None] | None = None
+    band_wavelength_nm: dict[str, int] | None = None
     observation_id: str | None
     scene: str | None
     scene_datetime_utc: str | None
@@ -158,3 +160,33 @@ class LiveAssessment(Assessment):
     live_readings: dict[str, LiveReading | None] = Field(default_factory=dict,
         description="Nearest USGS sonde reading per target at the overpass time (USGS sites only)")
     extraction_note: str
+
+
+class HistoryPoint(BaseModel):
+    date: str
+    observation_id: str
+    observed: float | None
+    predicted: float
+    lower: float
+    upper: float
+
+
+class TargetHistory(BaseModel):
+    label: str
+    unit: str
+    series: list[HistoryPoint]
+    reference_level: Literal["site", "basin", "none"]
+    n_reference: int
+    quantiles: dict[str, float]
+    histogram: dict
+
+
+class SiteHistory(BaseModel):
+    site_no: str
+    station_nm: str
+    basin: str
+    n_observations: int
+    targets: dict[str, TargetHistory]
+    spectrum_median: dict[str, float]
+    spectrum_iqr: dict[str, list[float]]
+    band_wavelength_nm: dict[str, int]

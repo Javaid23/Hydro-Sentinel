@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { api } from './api.js'
 import { StressCard, IndicatorGrid, ShapPanel, UncertaintyPanel, ExplanationPanel, fmtDate } from './components/panels.jsx'
+import { HistoryChart, SpectrumChart, SiteMap, MapLegend } from './components/charts.jsx'
 
 export default function App() {
   const [sites, setSites] = useState([])
@@ -12,21 +13,38 @@ export default function App() {
   const [explaining, setExplaining] = useState(false)
   const [error, setError] = useState(null)          // { message, retryable }
   const [health, setHealth] = useState(null)
+  const [history, setHistory] = useState(null)
+  const [importance, setImportance] = useState(null)
+  const [histTarget, setHistTarget] = useState('turbidity')
   const [mode, setMode] = useState(() => {                  // 'historical' | 'live' | 'coords'; ?mode= preselects
     const m = new URLSearchParams(window.location.search).get('mode')
     return ['historical', 'live', 'coords'].includes(m) ? m : 'historical'
   })
+  // Every preset was verified against live imagery on 2026-09-18 (open water within the 250 m buffer).
   const PRESETS = [
-    { name: 'Ravi River at Ravi Road Bridge, Lahore', lat: '31.6083', lon: '74.2959' },
-    { name: 'Chenab River at Head Marala', lat: '32.6720', lon: '74.4640' },
-    { name: 'Indus River at Sukkur Barrage', lat: '27.6820', lon: '68.8480' },
-    { name: 'Mississippi River at St. Louis, MO', lat: '38.6270', lon: '-90.1794' },
+    { region: 'Pakistan', name: 'Ravi River at Ravi Road Bridge, Lahore', lat: '31.6083', lon: '74.2959' },
+    { region: 'Pakistan', name: 'Chenab River at Head Marala', lat: '32.6720', lon: '74.4640' },
+    { region: 'Pakistan', name: 'Kabul River at Nowshera', lat: '34.0050', lon: '71.9830' },
+    { region: 'Pakistan', name: 'Sutlej River at Head Islam', lat: '29.8290', lon: '72.5480' },
+    { region: 'Pakistan', name: 'Indus River at Sukkur Barrage', lat: '27.6820', lon: '68.8480' },
+    { region: 'Pakistan', name: 'Indus River at Kotri Barrage', lat: '25.4460', lon: '68.3090' },
+    { region: 'South & East Asia', name: 'Ganges at Varanasi', lat: '25.3050', lon: '83.0200' },
+    { region: 'South & East Asia', name: 'Brahmaputra at Guwahati', lat: '26.1900', lon: '91.7400' },
+    { region: 'South & East Asia', name: 'Mekong at Phnom Penh', lat: '11.5650', lon: '104.9350' },
+    { region: 'Africa', name: 'Nile at Luxor', lat: '25.7000', lon: '32.6400' },
+    { region: 'Europe', name: 'Danube at Budapest', lat: '47.4980', lon: '19.0470' },
+    { region: 'Europe', name: 'Rhine at Cologne', lat: '50.9400', lon: '6.9640' },
+    { region: 'Europe', name: 'Thames at Gravesend', lat: '51.4480', lon: '0.3660' },
+    { region: 'Americas', name: 'Mississippi River at St. Louis, MO', lat: '38.6270', lon: '-90.1794' },
   ]
+  const REGIONS = [...new Set(PRESETS.map((p) => p.region))]
   const [coords, setCoords] = useState(PRESETS[0])
 
   // sites once
   useEffect(() => {
     api.health().then(setHealth).catch(() => setHealth(null))
+    Promise.all(['turbidity', 'chlorophyll_a', 'cdom'].map((t) => api.globalImportance(t, 8).then((r) => [t, r.features])))
+      .then((pairs) => setImportance(Object.fromEntries(pairs))).catch(() => setImportance(null))
     api.sites().then((s) => {
       setSites(s)
       // default: the site with the most observations that has all three targets, else the busiest
@@ -39,7 +57,8 @@ export default function App() {
   // observations when the site changes
   useEffect(() => {
     if (!siteId) return
-    setObservations([]); setObsId(''); setAssessment(null)
+    setObservations([]); setObsId(''); setAssessment(null); setHistory(null)
+    api.history(siteId).then(setHistory).catch(() => setHistory(null))
     api.observations(siteId, 400).then((o) => {
       setObservations(o)
       setObsId(o[o.length - 1]?.observation_id || '')
@@ -100,7 +119,11 @@ export default function App() {
           <label className="field span-all">Preset
             <select value="" onChange={(e) => { const p = PRESETS[Number(e.target.value)]; if (p) setCoords(p) }}>
               <option value="">Choose a river, or type coordinates below…</option>
-              {PRESETS.map((p, i) => <option key={p.name} value={i}>{p.name}</option>)}
+              {REGIONS.map((r) => (
+                <optgroup label={r} key={r}>
+                  {PRESETS.map((p, i) => p.region === r ? <option key={p.name} value={i}>{p.name}</option> : null)}
+                </optgroup>
+              ))}
             </select>
           </label>
           <label className="field">Latitude<input value={coords.lat} onChange={(e) => setCoords({ ...coords, lat: e.target.value })} /></label>
@@ -198,9 +221,39 @@ export default function App() {
       {assessment ? (
         <div className="grid">
           <StressCard a={assessment} />
-          <IndicatorGrid a={assessment} />
-          <ShapPanel a={assessment} />
+          <section className="card span-4 map-card">
+            <h2>Where</h2>
+            <SiteMap sites={sites} selected={mode === 'coords' ? null : siteId} onSelect={(id) => { setMode('historical'); setSiteId(id) }}
+              focus={mode === 'coords'
+                ? { lat: Number(coords.lat), lon: Number(coords.lon), name: coords.name, zoom: 11, isSite: false }
+                : site ? { lat: site.lat, lon: site.lon, name: site.station_nm, zoom: 9, isSite: true } : null} />
+            <MapLegend />
+          </section>
+          <IndicatorGrid a={assessment} history={mode === 'coords' ? null : history} />
+          {mode !== 'coords' && history && (
+            <section className="card span-12">
+              <div className="chart-head">
+                <div>
+                  <h2>How unusual is this? — site record, {history.n_observations} Sentinel-2 overpasses</h2>
+                  <p className="sub" style={{ margin: 0 }}>Model predictions across every overpass at this site against the sonde readings, with the site's typical range. The black line marks the observation being assessed.</p>
+                </div>
+                <div className="tabs">
+                  {Object.entries(assessment.indicators).map(([k, v]) => (
+                    <button key={k} className={histTarget === k ? 'primary' : 'ghost'} onClick={() => setHistTarget(k)}>{v.label}</button>
+                  ))}
+                </div>
+              </div>
+              <HistoryChart history={history} target={histTarget} currentId={assessment.observation.observation_id} unit={assessment.indicators[histTarget]?.unit} />
+            </section>
+          )}
+          <ShapPanel a={assessment} importance={importance} />
           <UncertaintyPanel a={assessment} />
+          <section className="card span-12">
+            <h2>What the satellite saw — spectral signature</h2>
+            <p className="sub">Reflectance in the 11 Sentinel-2 bands over the 250 m buffer{history ? ", against this site's typical spectrum" : ''}.</p>
+            <SpectrumChart bands={assessment.observation.bands} wavelengths={assessment.observation.band_wavelength_nm}
+              siteMedian={mode === 'coords' ? null : history?.spectrum_median} siteIqr={mode === 'coords' ? null : history?.spectrum_iqr} />
+          </section>
           <ExplanationPanel a={assessment} loading={explaining} onExplain={explain} />
         </div>
       ) : !error && <div className="empty">{loading ? (mode === 'historical' ? 'Loading assessment…' : 'Finding the newest cloud-free scene and reading the pixels around this point…') : mode === 'coords' ? 'Pick a river preset or enter coordinates, then press Assess.' : 'Select a site to begin.'}</div>}
