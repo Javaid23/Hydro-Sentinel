@@ -32,7 +32,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import schemas
 from hydrosentinel import config as C
-from hydrosentinel import data, live, llm
+from hydrosentinel import data, live, live_global, llm
 from hydrosentinel.assess import AssessmentService
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
@@ -172,14 +172,30 @@ _live_cache: dict[str, dict] = {}
 
 
 def _live_assess(lat: float, lon: float, site_no: str | None, station_nm: str | None, basin: str | None,
-                 explain: bool, top_k: int, cache_key: str) -> dict:
+                 explain: bool, top_k: int, cache_key: str, source: str = "auto") -> dict:
+    """source: 'usgs' (CONUS aquatic reflectance), 'global' (Sentinel-2 L2A, harmonised), or 'auto' = usgs then global."""
+    cache_key = f"{cache_key}|{source}"
     if cache_key in _live_cache:
         result = dict(_live_cache[cache_key])
     else:
+        used, obs, tried = None, None, []
         try:
-            obs, tried = live.latest_usable(lat, lon)
-        except LookupError as exc:
-            raise HTTPException(404, str(exc)) from exc
+            if source in ("auto", "usgs"):
+                try:
+                    obs, tried = live.latest_usable(lat, lon)
+                    used = "usgs"
+                except LookupError as exc:
+                    if source == "usgs":
+                        raise HTTPException(404, str(exc)) from exc
+            if obs is None and source in ("auto", "global"):
+                obs, tried_g = live_global.latest_usable(lat, lon)
+                tried = tried + tried_g
+                used = "global"
+        except HTTPException:
+            raise
+        except Exception as exc:  # noqa: BLE001 — network / imagery-service failures must not be 500s
+            log.warning("live extraction failed at %.4f,%.4f: %s", lat, lon, exc)
+            raise HTTPException(503, f"imagery service unreachable or failed ({type(exc).__name__}); retry shortly") from exc
         if obs is None:
             raise HTTPException(503, f"no usable recent scene at this location (cloud/glint/no open water in the last "
                                      f"{len(tried)} overpasses): " + "; ".join(f"{t['date'][:10]} {t['reason']}" for t in tried))
@@ -191,8 +207,15 @@ def _live_assess(lat: float, lon: float, site_no: str | None, station_nm: str | 
         for k, r in readings.items():
             obs[f"observed_{k}"] = r["value"] if r else np.nan
         result = state.service.assess(pd.Series(obs), top_k=top_k)
-        result.update({"mode": "live", "scenes_tried": tried, "live_readings": readings,
-                       "extraction_note": EXTRACTION_NOTE})
+        result.update({
+            "mode": "live", "scenes_tried": tried, "live_readings": readings,
+            "source": ("USGS Sentinel-2 ACOLITE-DSF aquatic reflectance (AWS, updated daily)" if used == "usgs"
+                       else live_global.SOURCE_LABEL),
+            "source_key": used,
+            "extraction_note": EXTRACTION_NOTE if used == "usgs" else live_global.EXTRACTION_NOTE,
+            "harmonisation": obs.get("harmonisation"),
+            "cloud_cover": obs.get("cloud_cover"),
+        })
         _live_cache[cache_key] = dict(result)
     if explain:
         result["llm_explanation"], result["llm_error"] = _cached_explanation(result["observation"]["observation_id"], result)
@@ -201,10 +224,13 @@ def _live_assess(lat: float, lon: float, site_no: str | None, station_nm: str | 
 
 @app.get("/live/coords", response_model=schemas.LiveAssessment)
 def live_coords(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180),
-                name: str | None = None, explain: bool = False, top_k: int = Query(5, ge=1, le=10)):
-    """Regional demonstration mode: any coordinates, no site history → out_of_region tier, no percentiles."""
+                name: str | None = None, explain: bool = False, top_k: int = Query(5, ge=1, le=10),
+                source: str = Query("auto", pattern="^(auto|usgs|global)$")):
+    """Regional demonstration mode: any coordinates, no site history → out_of_region tier, no percentiles.
+    Inside the conterminous US the USGS aquatic-reflectance product is used; elsewhere (or with
+    source=global) Sentinel-2 L2A is harmonised to it."""
     key = f"coords:{lat:.4f},{lon:.4f}"
-    return _live_assess(lat, lon, None, name or f"{lat:.4f}, {lon:.4f}", None, explain, top_k, key)
+    return _live_assess(lat, lon, None, name or f"{lat:.4f}, {lon:.4f}", None, explain, top_k, key, source)
 
 
 @app.get("/live/{site_id}", response_model=schemas.LiveAssessment)

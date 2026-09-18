@@ -138,9 +138,22 @@ class LiveReading(BaseModel):
     qualifiers: list[str] = []
 
 
+class Harmonisation(BaseModel):
+    applied: bool
+    reason: str | None = None
+    factors: dict[str, float] | None = None
+    spread: dict[str, dict] | None = None
+    n_pairs: int | None = None
+    n_sites: int | None = None
+    method: str | None = None
+
+
 class LiveAssessment(Assessment):
     mode: Literal["live"] = "live"
     source: str = "USGS Sentinel-2 ACOLITE-DSF aquatic reflectance (AWS, updated daily)"
+    source_key: Literal["usgs", "global"] = "usgs"
+    harmonisation: Harmonisation | None = None
+    cloud_cover: float | None = None
     scenes_tried: list[SceneAttempt]
     live_readings: dict[str, LiveReading | None] = Field(default_factory=dict,
         description="Nearest USGS sonde reading per target at the overpass time (USGS sites only)")
