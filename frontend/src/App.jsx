@@ -16,7 +16,13 @@ export default function App() {
     const m = new URLSearchParams(window.location.search).get('mode')
     return ['historical', 'live', 'coords'].includes(m) ? m : 'historical'
   })
-  const [coords, setCoords] = useState({ lat: '38.6270', lon: '-90.1794', name: 'Mississippi River at St. Louis, MO' })
+  const PRESETS = [
+    { name: 'Ravi River at Ravi Road Bridge, Lahore', lat: '31.6083', lon: '74.2959' },
+    { name: 'Chenab River at Head Marala', lat: '32.6720', lon: '74.4640' },
+    { name: 'Indus River at Sukkur Barrage', lat: '27.6820', lon: '68.8480' },
+    { name: 'Mississippi River at St. Louis, MO', lat: '38.6270', lon: '-90.1794' },
+  ]
+  const [coords, setCoords] = useState(PRESETS[0])
 
   // sites once
   useEffect(() => {
@@ -88,6 +94,12 @@ export default function App() {
 
       {mode === 'coords' && (
         <div className="controls coords">
+          <label className="field span-all">Preset
+            <select value="" onChange={(e) => { const p = PRESETS[Number(e.target.value)]; if (p) setCoords(p) }}>
+              <option value="">Choose a river, or type coordinates below…</option>
+              {PRESETS.map((p, i) => <option key={p.name} value={i}>{p.name}</option>)}
+            </select>
+          </label>
           <label className="field">Latitude<input value={coords.lat} onChange={(e) => setCoords({ ...coords, lat: e.target.value })} /></label>
           <label className="field">Longitude<input value={coords.lon} onChange={(e) => setCoords({ ...coords, lon: e.target.value })} /></label>
           <label className="field">Label<input value={coords.name} onChange={(e) => setCoords({ ...coords, name: e.target.value })} /></label>
@@ -100,8 +112,10 @@ export default function App() {
             </summary>
             <div className="meta" style={{ marginTop: 8 }}>
               Inputs may fall outside the range the models learned from, and there is no ground truth to check against.
-              Imagery comes from USGS's conterminous-US product, so coordinates must be inside the lower 48 states; a non-US site
-              such as the Ravi River at Lahore would need a Copernicus / Earth Engine feed, which is not wired in.
+              Inside the conterminous US the imagery is USGS's aquatic-reflectance product (the same as the training data).
+              Elsewhere it is Copernicus Sentinel-2 L2A, a land-oriented processing that reads brighter over water; its bands
+              are divided by factors measured at US training sites before scoring, which adds uncertainty the intervals do not
+              capture.
             </div>
           </details>
         </div>
@@ -149,13 +163,19 @@ export default function App() {
             <summary>
               <b>Live:</b> newest cloud-free Sentinel-2 pass over this site, {fmtDate(assessment.observation.scene_datetime_utc).slice(0, 16)}
               {' '}({ageDays === 0 ? 'today' : `${ageDays} day${ageDays === 1 ? '' : 's'} ago`})
+              {assessment.source_key === 'global' ? ' · Copernicus L2A imagery, harmonised to the training product' : ''}
               {hasLive ? ' · live USGS sonde readings shown beside the predictions' : ''}
               {skipped.length ? ` · ${skipped.length} newer pass${skipped.length === 1 ? '' : 'es'} skipped (cloud or no clear water)` : ''}
               <span className="meta"> — details</span>
             </summary>
             <div className="meta" style={{ marginTop: 8 }}>
-              Scene <code>{assessment.observation.scene}</code> from {assessment.source}.<br />
+              Scene <code>{assessment.observation.scene}</code> from {assessment.source}
+              {assessment.cloud_cover != null ? ` (scene cloud cover ${Math.round(assessment.cloud_cover)}%)` : ''}.<br />
               {assessment.extraction_note}
+              {assessment.harmonisation?.applied && (
+                <><br />Harmonisation factors (L2A ÷ ACOLITE, median of {assessment.harmonisation.n_pairs} same-day pairs at {assessment.harmonisation.n_sites} US sites):{' '}
+                {Object.entries(assessment.harmonisation.factors).map(([b, f]) => `${b} ${f.toFixed(2)}`).join(' · ')}</>
+              )}
               {skipped.length > 0 && (
                 <><br />Skipped: {skipped.map((t) => `${t.date.slice(0, 10)} (${t.reason})`).join('; ')}</>
               )}

@@ -91,3 +91,32 @@ never feeds the model). This makes a 2026 prediction checkable on screen.
 CONUS coordinates (out-of-region tier when outside the five training basins) but not for the Ravi
 River at Lahore. A non-US demo would need a Copernicus Data Space / Earth Engine feed and is not
 wired in; the UI says so explicitly.
+
+## D7 — Global imagery source for non-US sites, harmonised to the training product (2026-09-18)
+
+The USGS aquatic-reflectance feed (D6) is conterminous-US only, so the Ravi, Chenab and Indus
+could not be scored. `hydrosentinel/live_global.py` adds Copernicus Sentinel-2 **L2A** from the
+public AWS archive (Earth Search STAC, no credentials, worldwide, scenes within a day of acquisition).
+
+Three things had to be handled honestly:
+
+1. **Different atmospheric correction.** L2A is Sen2Cor (land-oriented); the training data are
+   ACOLITE-DSF aquatic reflectance. Measured over the same 250 m of water on the same day at 5
+   training sites (15 pairs, `scripts/harmonise_l2a.py`), L2A reads brighter by a median factor of
+   1.16–1.37 in the visible, ~1.25 in NIR and ~2.2 in SWIR, with interquartile ranges of roughly
+   ±15 %. Live L2A band statistics are divided by these factors before scoring
+   (`models/harmonisation_l2a.json`); the API reports the factors and spread. This is a stop-gap
+   harmonisation from a small US-only sample, not a validated cross-calibration; the residual
+   spread is uncertainty the conformal intervals do not include.
+2. **Water masking.** NDWI > 0 (USGS's rule) fails on very turbid rivers under Sen2Cor because NIR
+   exceeds green (Ravi at Lahore: SCL marks 169 water pixels, NDWI 3). The global source uses the
+   Sen2Cor scene-classification water class OR NDWI > 0; cloud/shadow/snow classes replace
+   `l2_flags`.
+3. **Offset.** Earth Search COGs already have the BOA offset removed (`earthsearch:boa_offset_applied`),
+   despite asset metadata still listing `offset -0.1`. Subtracting it again produced 88 % negative
+   pixels at Portland; verified against USGS AQR on the same scene and fixed.
+
+Outputs at these sites are labelled out-of-region, carry no percentile or stress score, and use the
+Low / Very low confidence tiers. First results (18 Sep 2026 scenes, late monsoon): turbidity Ravi
+≈ 400 FNU, Chenab ≈ 160 FNU, Indus at Sukkur ≈ 210 FNU — plausible in rank and magnitude for the
+season, and unverified.
