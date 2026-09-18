@@ -56,6 +56,7 @@ export default function App() {
   useEffect(() => {
     setAssessment(null); setError(null)
     if (mode !== 'coords') load(autoExplain, setLoading)
+    else if (new URLSearchParams(window.location.search).get('auto') === '1') load(autoExplain, setLoading)  // demo links
   }, [siteId, obsId, mode])
 
   const explain = () => load(true, setExplaining)

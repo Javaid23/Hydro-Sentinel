@@ -27,6 +27,29 @@ export function StressCard({ a }) {
   const s = a.stress
   const cls = s.score == null ? '' : s.score >= 70 ? 'high' : s.score >= 40 ? 'mid' : 'low'
   const o = a.observation
+  if (s.score == null) {
+    // No site or basin history to rank against (out-of-region): say so instead of drawing an empty gauge.
+    return (
+      <section className="card span-12">
+        <h2>Current assessment</h2>
+        <div className="hero">
+          <div>
+            <div className="label">Stress score not available here</div>
+            <div className="meta" style={{ marginTop: 6, maxWidth: 720 }}>
+              The Freshwater Stress Score ranks each prediction against <b>this site's own historical record</b> (or its basin's).
+              {o.station_nm ? <> <b>{o.station_nm}</b> has</> : ' This location has'} no history in the training data and lies outside
+              the five training basins, and the score is never computed against a pooled all-basin reference — a naturally
+              clear or naturally turbid river would look anomalous just for being itself. The predictions and their
+              90 % intervals below stand on their own.
+            </div>
+            <div className="meta" style={{ marginTop: 8 }}>
+              Sentinel-2 overpass {fmtDate(o.scene_datetime_utc)} · <Chip kind="tier" text={TIER_TEXT[a.validation_tier]} />
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
   return (
     <section className="card span-12">
       <h2>Current assessment</h2>
