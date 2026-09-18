@@ -130,18 +130,30 @@ export default function App() {
 
       {error && <div className="notice err" style={{ marginBottom: 16 }}>{error}</div>}
 
-      {assessment?.mode === 'live' && (
-        <div className="notice" style={{ marginBottom: 16 }}>
-          <b>Live scene:</b> {assessment.observation.scene} · extracted on the fly from {assessment.source}.{' '}
-          {assessment.scenes_tried.filter((t) => !t.usable).length > 0 && (
-            <>Skipped {assessment.scenes_tried.filter((t) => !t.usable).length} newer scene(s): {assessment.scenes_tried.filter((t) => !t.usable).map((t) => `${t.date.slice(0, 10)} (${t.reason})`).join('; ')}. </>
-          )}
-          {Object.values(assessment.live_readings || {}).some(Boolean) && (
-            <>Live USGS sonde readings at the overpass are shown beside the predictions.</>
-          )}
-          <div className="meta" style={{ marginTop: 4 }}>{assessment.extraction_note}</div>
-        </div>
-      )}
+      {assessment?.mode === 'live' && (() => {
+        const skipped = assessment.scenes_tried.filter((t) => !t.usable)
+        const hasLive = Object.values(assessment.live_readings || {}).some(Boolean)
+        const d = new Date(assessment.observation.scene_datetime_utc)
+        const ageDays = Math.round((Date.now() - d.getTime()) / 86400000)
+        return (
+          <details className="notice live-note" style={{ marginBottom: 16 }}>
+            <summary>
+              <b>Live:</b> newest cloud-free Sentinel-2 pass over this site, {fmtDate(assessment.observation.scene_datetime_utc).slice(0, 16)}
+              {' '}({ageDays === 0 ? 'today' : `${ageDays} day${ageDays === 1 ? '' : 's'} ago`})
+              {hasLive ? ' · live USGS sonde readings shown beside the predictions' : ''}
+              {skipped.length ? ` · ${skipped.length} newer pass${skipped.length === 1 ? '' : 'es'} skipped (cloud or no clear water)` : ''}
+              <span className="meta"> — details</span>
+            </summary>
+            <div className="meta" style={{ marginTop: 8 }}>
+              Scene <code>{assessment.observation.scene}</code> from {assessment.source}.<br />
+              {assessment.extraction_note}
+              {skipped.length > 0 && (
+                <><br />Skipped: {skipped.map((t) => `${t.date.slice(0, 10)} (${t.reason})`).join('; ')}</>
+              )}
+            </div>
+          </details>
+        )
+      })()}
 
       {assessment ? (
         <div className="grid">
