@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { api } from './api.js'
 import { StressCard, IndicatorGrid, ShapPanel, UncertaintyPanel, ExplanationPanel, fmtDate } from './components/panels.jsx'
-import { HistoryChart, SpectrumChart, SiteMap, MapLegend } from './components/charts.jsx'
+import { HistoryChart, SpectrumChart, SiteMap, MapLegend, OodChart } from './components/charts.jsx'
 
 export default function App() {
   const [sites, setSites] = useState([])
@@ -243,11 +243,28 @@ export default function App() {
                   ))}
                 </div>
               </div>
-              <HistoryChart history={history} target={histTarget} currentId={assessment.observation.observation_id} unit={assessment.indicators[histTarget]?.unit} />
+              <HistoryChart history={history} target={histTarget} currentId={assessment.observation.observation_id}
+                unit={assessment.indicators[histTarget]?.unit}
+                livePoint={assessment.mode === 'live' ? { date: assessment.observation.scene_datetime_utc, predicted: assessment.indicators[histTarget]?.prediction } : null} />
             </section>
           )}
           <ShapPanel a={assessment} importance={importance} />
           <UncertaintyPanel a={assessment} />
+          {assessment.ood && (
+            <section className="card span-12">
+              <div className="chart-head">
+                <div>
+                  <h2>Is this like anything the models have seen?</h2>
+                  <p className="sub" style={{ margin: 0 }}>{assessment.ood.verdict}. Bands outside the training range mean the models are extrapolating — the intervals below do not account for that.</p>
+                </div>
+                <span className={`chip ${assessment.ood.n_outside === 0 ? 'Typical' : assessment.ood.n_outside > 3 ? 'High' : 'Elevated'}`}>
+                  <span className="dot" aria-hidden="true" />
+                  {assessment.ood.n_outside} / {assessment.ood.n_bands} bands outside
+                </span>
+              </div>
+              <OodChart ood={assessment.ood} />
+            </section>
+          )}
           <section className="card span-12">
             <h2>What the satellite saw — spectral signature</h2>
             <p className="sub">Reflectance in the 11 Sentinel-2 bands over the 250 m buffer{history ? ", against this site's typical spectrum" : ''}.</p>

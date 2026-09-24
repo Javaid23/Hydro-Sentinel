@@ -223,3 +223,14 @@ details.live-note code { font-size: 12px; background: var(--surface-1); padding:
 .leaflet-container { font: inherit; background: var(--surface-2); z-index: 0; }
 .pin-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--div-warm); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--div-warm); }
 @media (max-width: 640px) { .mini-indicators { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mini-val { font-size: 18px; } }
+
+/* ---- out-of-distribution rows ---- */
+.ood-rows { display: flex; flex-direction: column; gap: 3px; }
+.ood-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) 72px; gap: 10px; align-items: center; font-size: 12px; }
+.ood-row .lbl { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ood-row .val { text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.ood-track { position: relative; height: 14px; }
+.ood-range { position: absolute; left: 0; right: 0; top: 5px; height: 4px; border-radius: 2px; background: var(--seq-200); }
+.ood-dot { position: absolute; top: 2px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--div-warm); border: 2px solid var(--surface-1); }
+.ood-dot.outside { background: var(--status-critical); width: 12px; height: 12px; top: 1px; margin-left: -6px; }
+@media (max-width: 640px) { .ood-row { grid-template-columns: 1fr 64px; row-gap: 2px; } .ood-row .lbl { grid-column: 1 / -1; } }

@@ -49,13 +49,15 @@ export function Gauge({ score, label }) {
 // ---------------------------------------------------------------- history: observed vs predicted with typical range
 const tooltipStyle = { background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--text-primary)' }
 
-export function HistoryChart({ history, target, currentId, unit }) {
+export function HistoryChart({ history, target, currentId, unit, livePoint }) {
   const t = history?.targets?.[target]
   const data = useMemo(() => (t?.series || []).map((p) => ({ ...p, ts: new Date(p.date).getTime(), year: new Date(p.date).getFullYear() })), [t])
   const [logScale, setLogScale] = useState(true)
   if (!t || !data.length) return <div className="empty">No history for this site.</div>
   const q = t.quantiles
+  // in live mode the scored scene is newer than the stored series, so it is passed in separately
   const current = data.find((p) => p.observation_id === currentId)
+    || (livePoint ? { ts: new Date(livePoint.date).getTime(), predicted: livePoint.predicted, isLive: true } : null)
   const years = [...new Set(data.map((p) => p.year))]
   const ticks = years.filter((y, i) => years.length <= 6 || i % 2 === 0).map((y) => new Date(`${y}-01-01`).getTime())
   return (
@@ -72,7 +74,7 @@ export function HistoryChart({ history, target, currentId, unit }) {
       <ResponsiveContainer width="100%" height={220}>
         <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="ts" type="number" domain={['dataMin', 'dataMax']} ticks={ticks} tickFormatter={(v) => new Date(v).getFullYear()} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+          <XAxis dataKey="ts" type="number" domain={[(min) => min, (max) => Math.max(max, current?.ts ?? max)]} ticks={ticks} tickFormatter={(v) => new Date(v).getFullYear()} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
           <YAxis scale={logScale ? 'log' : 'linear'} domain={logScale ? ['auto', 'auto'] : [0, 'auto']} allowDataOverflow tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={44} tickFormatter={(v) => fmt(v, 1)} />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => new Date(v).toUTCString().slice(0, 16)}
             formatter={(v, n) => [v == null ? '—' : `${fmt(v)} ${unit}`, n === 'observed' ? 'observed' : n === 'predicted' ? 'predicted' : n]} />
@@ -80,7 +82,8 @@ export function HistoryChart({ history, target, currentId, unit }) {
           {q?.p90 != null && <ReferenceLine y={q.p90} stroke="var(--status-warning)" strokeDasharray="4 3" label={{ value: 'p90', position: 'insideTopRight', fontSize: 10, fill: 'var(--text-muted)' }} />}
           <Line dataKey="predicted" stroke={COL.predicted} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
           <Line dataKey="observed" stroke={COL.observed} strokeWidth={0} dot={{ r: 2.5, fill: COL.observed, strokeWidth: 0 }} isAnimationActive={false} />
-          {current && <ReferenceLine x={current.ts} stroke={COL.now} strokeWidth={1.5} />}
+          {current && <ReferenceLine x={current.ts} stroke={COL.now} strokeWidth={1.5}
+            label={current.isLive ? { value: 'live', position: 'top', fontSize: 10, fill: 'var(--text-secondary)' } : undefined} />}
           {current && <ReferenceDot x={current.ts} y={current.predicted} r={6} fill={COL.predicted} stroke="var(--surface-1)" strokeWidth={2} />}
         </ComposedChart>
       </ResponsiveContainer>
@@ -191,6 +194,37 @@ export function MapLegend() {
   return (
     <div className="legend" style={{ marginTop: 6 }}>
       {Object.entries(COL.basins).map(([b, c]) => <span key={b}><i style={{ background: c, borderRadius: '50%' }} />{b}</span>)}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- out-of-distribution check
+export function OodChart({ ood }) {
+  if (!ood?.bands?.length) return null
+  const data = ood.bands.map((b) => ({ ...b, shortLabel: `${b.band} ${b.label.split(' ').slice(1).join(' ')}` }))
+  return (
+    <div>
+      <div className="legend">
+        <span><i style={{ background: COL.band }} />training range (p1–p99)</span>
+        <span><i style={{ background: COL.predicted, borderRadius: '50%' }} />this observation</span>
+        <span><i style={{ background: css('--status-critical'), borderRadius: '50%' }} />outside the training range</span>
+      </div>
+      <div className="ood-rows">
+        {data.map((b) => {
+          const pos = Math.max(0, Math.min(100, b.position))
+          return (
+            <div className="ood-row" key={b.band} title={`${b.label}: ${b.value} · training p1–p99 ${b.training.p1}–${b.training.p99}`}>
+              <span className="lbl">{b.shortLabel}</span>
+              <div className="ood-track">
+                <div className="ood-range" />
+                <div className={`ood-dot ${b.outside ? 'outside' : ''}`} style={{ left: `${pos}%` }} />
+              </div>
+              <span className="val">{b.outside ? (b.direction === 'above' ? '↑ above' : '↓ below') : 'in range'}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div className="meta" style={{ fontSize: 12, marginTop: 6 }}>{ood.reference}.</div>
     </div>
   )
 }
