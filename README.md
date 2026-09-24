@@ -51,8 +51,8 @@ on a coin flip — [docs/results/benchmark_findings.md](docs/results/benchmark_f
   measured shortfall on unseen basins is what sets the lower confidence tiers
   ([docs/results/uncertainty.md](docs/results/uncertainty.md)).
 - **Out-of-distribution check.** At any unseen location the dashboard reports how many Sentinel-2
-  bands fall outside the 1st–99th percentile of the training data. At the Ravi in Lahore, 3 of 11
-  do — so the extrapolation is visible rather than asserted.
+  bands fall outside the 1st–99th percentile of the training data. At the Ravi in Lahore several do,
+  so the extrapolation is visible rather than asserted.
 - **The LLM cannot touch a number.** It receives the finished assessment as text and returns
   prose; every numeric value on screen comes from the pipeline.
 - **No score where none is defensible.** Out of region there is no local history, so no percentile

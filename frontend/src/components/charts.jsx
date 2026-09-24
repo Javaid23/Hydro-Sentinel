@@ -206,14 +206,14 @@ export function OodChart({ ood }) {
     <div>
       <div className="legend">
         <span><i style={{ background: COL.band }} />training range (p1–p99)</span>
-        <span><i style={{ background: COL.predicted, borderRadius: '50%' }} />this observation</span>
+        <span><i style={{ background: COL.observed, borderRadius: '50%' }} />this observation, in range</span>
         <span><i style={{ background: css('--status-critical'), borderRadius: '50%' }} />outside the training range</span>
       </div>
       <div className="ood-rows">
         {data.map((b) => {
           const pos = Math.max(0, Math.min(100, b.position))
           return (
-            <div className="ood-row" key={b.band} title={`${b.label}: ${b.value} · training p1–p99 ${b.training.p1}–${b.training.p99}`}>
+            <div className={`ood-row ${b.outside ? 'is-outside' : ''}`} key={b.band} title={`${b.label}: ${b.value} · training p1–p99 ${b.training.p1}–${b.training.p99}`}>
               <span className="lbl">{b.shortLabel}</span>
               <div className="ood-track">
                 <div className="ood-range" />

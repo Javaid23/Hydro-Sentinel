@@ -93,8 +93,8 @@ indicator.
 >
 > Now the Ravi at Lahore — live Copernicus imagery, a river 11,000 km from any training data. The
 > pipeline runs end to end. But there's no local history, so there is no percentile and no stress
-> score; and the out-of-distribution check shows 3 of 11 bands fall outside anything the models saw
-> in training. That's the honest framing: the pipeline works on a new region; the numbers are not
+> score; and the out-of-distribution check shows several of the eleven bands fall outside anything the
+> models saw in training. That's the honest framing: the pipeline works on a new region; the numbers are not
 > validated there.
 
 *On screen:* switch to Regional demo, Ravi preset. Show the "Stress score not available here" card
@@ -127,7 +127,7 @@ and the out-of-distribution panel.
 | CDOM between-site variance | 91 % | [results/model_findings.md](results/model_findings.md) |
 | Conformal coverage, known sites | ≈ 90 % (target 90 %) | [results/uncertainty.md](results/uncertainty.md) |
 | Sites / observations served | 49 sites, 6,661 observations | `GET /health` |
-| Ravi bands outside training range | 3 of 11 | dashboard OOD panel |
+| Ravi bands outside training range | 5 of 11 on the 23 Sep 2026 scene — varies by scene, read it off the panel | dashboard OOD panel |
 | Tests | 46 | `pytest` |
 
 ## Questions judges may ask
