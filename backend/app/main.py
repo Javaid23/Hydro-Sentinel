@@ -13,6 +13,10 @@ HydroSentinel API.
                                                   product, extracted on the fly, + live sonde readings
     GET /live/coords?lat=&lon=                    LIVE at any coordinates (regional demonstration mode;
                                                   out-of-region, unvalidated)
+    GET /live/cache                               what live extractions are cached on disk
+
+Live extractions are cached to disk (hydrosentinel/livecache.py): a scene's pixels never change,
+so a cached answer is the same answer. Pre-fetch demo locations with scripts/warm_live_cache.py.
 
 One call to /assessment renders the whole dashboard view.
 """
@@ -32,7 +36,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import schemas
 from hydrosentinel import config as C
-from hydrosentinel import data, features, live, live_global, llm
+from hydrosentinel import data, features, live, live_global, livecache, llm
 from hydrosentinel.assess import AssessmentService
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
@@ -220,6 +224,53 @@ EXTRACTION_NOTE = ("Bands extracted on the fly from the newest usable scene: 250
 _live_cache: dict[str, dict] = {}
 
 
+def _fetch_live(lat: float, lon: float, source: str) -> tuple[dict, list, str, dict | None]:
+    """Get one live observation, preferring a fresh disk-cached copy.
+
+    Order: fresh cache -> network -> stale cache (flagged). Returns
+    (observation, scenes_tried, source_key, cache_info-or-None).
+    """
+    for src in (("usgs", "global") if source == "auto" else (source,)):
+        obs, tried, stale = livecache.load(lat, lon, src)
+        if obs is not None and not stale:
+            info = obs.pop("_cache")
+            log.info("live cache hit (%s, %.1f h old) at %.4f,%.4f", src, info["age_hours"], lat, lon)
+            return obs, tried or [], src, {**info, "stale": False}
+
+    used, obs, tried = None, None, []
+    try:
+        if source in ("auto", "usgs"):
+            try:
+                obs, tried = live.latest_usable(lat, lon)
+                used = "usgs"
+            except LookupError as exc:
+                if source == "usgs":
+                    raise HTTPException(404, str(exc)) from exc
+        if obs is None and source in ("auto", "global"):
+            obs, tried_g = live_global.latest_usable(lat, lon)
+            tried = tried + tried_g
+            used = "global"
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 — network failures fall back to a stale copy if we have one
+        log.warning("live extraction failed at %.4f,%.4f: %s", lat, lon, exc)
+        for src in (("usgs", "global") if source == "auto" else (source,)):
+            obs, tried, _ = livecache.load(lat, lon, src)
+            if obs is not None:
+                info = obs.pop("_cache")
+                log.info("serving stale cache (%s, %.1f h old) after network failure", src, info["age_hours"])
+                return obs, tried or [], src, {**info, "stale": True,
+                                               "note": "imagery service was unreachable; showing the last successfully "
+                                                       "retrieved scene for this location"}
+        raise HTTPException(503, f"imagery service unreachable or failed ({type(exc).__name__}); retry shortly") from exc
+
+    if obs is None:
+        raise HTTPException(503, f"no usable recent scene at this location (cloud/glint/no open water in the last "
+                                 f"{len(tried)} overpasses): " + "; ".join(f"{t['date'][:10]} {t['reason']}" for t in tried))
+    livecache.save(lat, lon, used, obs, tried)
+    return obs, tried, used, None
+
+
 def _live_assess(lat: float, lon: float, site_no: str | None, station_nm: str | None, basin: str | None,
                  explain: bool, top_k: int, cache_key: str, source: str = "auto") -> dict:
     """source: 'usgs' (CONUS aquatic reflectance), 'global' (Sentinel-2 L2A, harmonised), or 'auto' = usgs then global."""
@@ -227,27 +278,7 @@ def _live_assess(lat: float, lon: float, site_no: str | None, station_nm: str | 
     if cache_key in _live_cache:
         result = dict(_live_cache[cache_key])
     else:
-        used, obs, tried = None, None, []
-        try:
-            if source in ("auto", "usgs"):
-                try:
-                    obs, tried = live.latest_usable(lat, lon)
-                    used = "usgs"
-                except LookupError as exc:
-                    if source == "usgs":
-                        raise HTTPException(404, str(exc)) from exc
-            if obs is None and source in ("auto", "global"):
-                obs, tried_g = live_global.latest_usable(lat, lon)
-                tried = tried + tried_g
-                used = "global"
-        except HTTPException:
-            raise
-        except Exception as exc:  # noqa: BLE001 — network / imagery-service failures must not be 500s
-            log.warning("live extraction failed at %.4f,%.4f: %s", lat, lon, exc)
-            raise HTTPException(503, f"imagery service unreachable or failed ({type(exc).__name__}); retry shortly") from exc
-        if obs is None:
-            raise HTTPException(503, f"no usable recent scene at this location (cloud/glint/no open water in the last "
-                                     f"{len(tried)} overpasses): " + "; ".join(f"{t['date'][:10]} {t['reason']}" for t in tried))
+        obs, tried, used, cached = _fetch_live(lat, lon, source)
         obs.update({"site_no": site_no, "station_nm": station_nm, "basin": basin,
                     "observation_id": f"live_{site_no or 'coords'}_{obs['scene_datetime_utc']:%Y%m%dT%H%M%S}"})
         readings = live.nwis_readings_for_targets(site_no, obs["scene_datetime_utc"]) if site_no else {}
@@ -264,11 +295,20 @@ def _live_assess(lat: float, lon: float, site_no: str | None, station_nm: str | 
             "extraction_note": EXTRACTION_NOTE if used == "usgs" else live_global.EXTRACTION_NOTE,
             "harmonisation": obs.get("harmonisation"),
             "cloud_cover": obs.get("cloud_cover"),
+            "cache": cached,
+            "ood": state.service.ood_check(pd.Series(obs)),
         })
         _live_cache[cache_key] = dict(result)
     if explain:
         result["llm_explanation"], result["llm_error"] = _cached_explanation(result["observation"]["observation_id"], result)
     return result
+
+
+@app.get("/live/cache")
+def live_cache_status():
+    """What live extractions are cached on disk (scene id, acquisition time, when fetched)."""
+    return {"cache_dir": str(livecache.CACHE_DIR), "max_age_hours": livecache.MAX_AGE_HOURS,
+            "entries": livecache.entries()}
 
 
 @app.get("/live/coords", response_model=schemas.LiveAssessment)

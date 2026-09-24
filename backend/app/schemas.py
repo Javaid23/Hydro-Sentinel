@@ -150,12 +150,42 @@ class Harmonisation(BaseModel):
     method: str | None = None
 
 
+class CacheInfo(BaseModel):
+    hit: bool
+    fetched_utc: str | None = None
+    age_hours: float | None = None
+    stale: bool = False
+    note: str | None = None
+
+
+class OodBand(BaseModel):
+    band: str
+    label: str
+    wavelength_nm: int
+    value: float
+    training: dict
+    position: float
+    outside: bool
+    direction: str | None = None
+
+
+class OodCheck(BaseModel):
+    bands: list[OodBand]
+    n_bands: int
+    n_outside: int
+    share_outside: float | None
+    verdict: str
+    reference: str
+
+
 class LiveAssessment(Assessment):
     mode: Literal["live"] = "live"
     source: str = "USGS Sentinel-2 ACOLITE-DSF aquatic reflectance (AWS, updated daily)"
     source_key: Literal["usgs", "global"] = "usgs"
     harmonisation: Harmonisation | None = None
     cloud_cover: float | None = None
+    cache: CacheInfo | None = Field(None, description="Set when the observation came from the disk cache")
+    ood: OodCheck | None = Field(None, description="Where this observation's bands sit vs the training range")
     scenes_tried: list[SceneAttempt]
     live_readings: dict[str, LiveReading | None] = Field(default_factory=dict,
         description="Nearest USGS sonde reading per target at the overpass time (USGS sites only)")

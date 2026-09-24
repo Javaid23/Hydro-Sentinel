@@ -31,3 +31,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+
+# Live extraction cache (regenerated on demand; warm with scripts/warm_live_cache.py)
+data/live_cache/
