@@ -109,6 +109,20 @@ def main() -> int:
         manifest["targets"][t] = {k: meta[k] for k in
                                   ("label", "unit", "n_rows", "n_estimators", "training_basins", "conformal")}
     (args.out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    # Per-band training distribution, used by the out-of-distribution check for unseen locations.
+    # Built from the largest target's table (turbidity) — the broadest sample of training inputs.
+    ref_df = data.load_processed("turbidity")
+    bands_ref = {}
+    for b in C.BANDS:
+        col = ref_df[f"{b}_buf250_mean"].dropna()
+        bands_ref[b] = {k: round(float(v), 2) for k, v in {
+            "p1": col.quantile(0.01), "p25": col.quantile(0.25), "p50": col.median(),
+            "p75": col.quantile(0.75), "p99": col.quantile(0.99), "min": col.min(), "max": col.max(),
+        }.items()}
+    (args.out_dir / "training_bands.json").write_text(json.dumps(bands_ref, indent=2), encoding="utf-8")
+    log.info("wrote %s (%d bands from %d turbidity observations)", args.out_dir / "training_bands.json",
+             len(bands_ref), len(ref_df))
     log.info("wrote %s", args.out_dir / "manifest.json")
     return 0
 

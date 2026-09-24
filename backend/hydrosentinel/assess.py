@@ -90,6 +90,14 @@ class AssessmentService:
         self.targets: dict[str, TargetArtifacts] = {
             k: TargetArtifacts.load(self.models_dir / k) for k in self.manifest["targets"]
         }
+        self.training_bands: dict[str, dict] = self._load_training_bands()
+
+    def _load_training_bands(self) -> dict[str, dict]:
+        """Per-band training quantiles, written by scripts/train.py. Empty if absent (older artifacts)."""
+        p = self.models_dir / "training_bands.json"
+        if not p.exists():
+            return {}
+        return json.loads(p.read_text(encoding="utf-8"))
 
     # ------------------------------------------------------------------ single observation
     def assess(self, obs: pd.Series | dict, top_k: int = 5) -> dict:
@@ -146,6 +154,41 @@ class AssessmentService:
             "indicators": indicators,
             "validation_tier": overall_tier,
             "model_version": self.manifest["trained_utc"],
+        }
+
+    # ------------------------------------------------------------------ out-of-distribution check
+    def ood_check(self, obs: pd.Series | dict) -> dict:
+        """How far this observation's inputs sit outside the range the models were trained on.
+
+        Spec Section 18 requires saying plainly that inputs at an unseen location "may fall outside
+        the range the model ever learned from". This measures it instead of asserting it: for each
+        band, where the value falls in the training distribution of the largest target (turbidity),
+        and how many bands are beyond the 1st/99th percentile.
+        """
+        row = pd.DataFrame([obs]) if isinstance(obs, dict) else obs.to_frame().T
+        ref = self.training_bands
+        bands = []
+        for b in C.BANDS:
+            v = _opt(row, f"{b}_buf250_mean")
+            r = ref.get(b)
+            if v is None or r is None:
+                continue
+            below, above = v < r["p1"], v > r["p99"]
+            # position on a 0-100 scale of the training range, clipped for display
+            span = max(r["p99"] - r["p1"], 1e-6)
+            bands.append({
+                "band": b, "label": f"{b} {C.BAND_LABEL[b]}", "wavelength_nm": C.BAND_WAVELENGTH_NM[b],
+                "value": round(float(v), 1), "training": r,
+                "position": round(float(np.clip((v - r["p1"]) / span, -0.25, 1.25)) * 100, 1),
+                "outside": bool(below or above), "direction": "below" if below else "above" if above else None,
+            })
+        n_out = sum(b["outside"] for b in bands)
+        return {
+            "bands": bands, "n_bands": len(bands), "n_outside": n_out,
+            "share_outside": round(n_out / len(bands), 2) if bands else None,
+            "verdict": ("inputs are within the range seen in training" if n_out == 0 else
+                        f"{n_out} of {len(bands)} bands fall outside the 1st-99th percentile of the training data"),
+            "reference": "1st-99th percentile of band means across all 6,160 turbidity training observations",
         }
 
     # ------------------------------------------------------------------ global explanations
