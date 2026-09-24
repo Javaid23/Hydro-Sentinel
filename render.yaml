@@ -15,3 +15,6 @@ services:
         value: openai/gpt-oss-120b
       - key: HS_CORS_ORIGINS
         value: https://hydro-sentinel.vercel.app,http://localhost:5173
+      # Live extraction cache lives on the ephemeral disk; rebuilt after each spin-down.
+      - key: HS_LIVE_CACHE
+        value: /app/data/live_cache

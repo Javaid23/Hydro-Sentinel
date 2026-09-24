@@ -1,0 +1,4 @@
+# Development extras. Runtime dependencies live in requirements.txt (what the Docker image installs).
+-r requirements.txt
+
+pytest>=8

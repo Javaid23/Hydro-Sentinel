@@ -21,9 +21,9 @@ httpx>=0.27
 groq>=0.11
 python-dotenv>=1.0
 
-# Benchmarks only (LSTM / FT-Transformer; not needed by the API or Docker image)
-# torch==2.4.1  --index-url https://download.pytorch.org/whl/cpu
-
-# Dev / analysis
+# Required transitively: `import shap` pulls in shap.plots, which imports matplotlib at module level
 matplotlib>=3.9
-pytest>=8
+
+# Not in this file, install separately when needed:
+#   testing            pip install -r requirements-dev.txt
+#   benchmarks only    pip install torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
