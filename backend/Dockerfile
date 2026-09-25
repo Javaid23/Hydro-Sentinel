@@ -18,7 +18,7 @@ COPY models models
 COPY data/processed data/processed
 
 # Live extractions are cached here. On a free-tier host the filesystem is ephemeral, so the cache
-# is rebuilt after each spin-down — correctness is unaffected, only the first request is slow.
+# is rebuilt after each spin-down â€” correctness is unaffected, only the first request is slow.
 RUN mkdir -p /app/data/live_cache
 
 WORKDIR /app/backend

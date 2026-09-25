@@ -8,6 +8,12 @@ venv/
 .mypy_cache/
 .ipynb_checkpoints/
 
+# Coverage output (binary database and reports)
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
 # Environment / secrets
 .env
 .env.*

@@ -27,6 +27,9 @@ python-dotenv>=1.0
 # Required transitively: `import shap` pulls in shap.plots, which imports matplotlib at module level
 matplotlib>=3.9
 
-# Not in this file, install separately when needed:
-#   testing            pip install -r requirements-dev.txt
-#   benchmarks only    pip install torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
+# Test runner. Kept here rather than in a separate dev file: it is one small package, and a second
+# requirements file costs more in confusion than it saves in image size.
+pytest>=8
+
+# Not installed here — the benchmark scripts only, and a large download:
+#   pip install torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
