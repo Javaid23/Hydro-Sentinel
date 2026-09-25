@@ -17,6 +17,7 @@ Exit code 0 if every check passes, 1 otherwise. What it checks:
   6. The harmonisation factors were measured from real same-day scene pairs
   7. The LLM cannot write into the numeric assessment
   8. Stress-score thresholds are defined once, in the backend
+  9. Test counts quoted in the docs match what pytest actually collects
 """
 
 from __future__ import annotations
@@ -164,6 +165,52 @@ hardcoded = re.findall(r"score\s*>=\s*(\d+)", front)
 check(not hardcoded or [float(x) for x in hardcoded] == sorted(backend_bands, reverse=True),
       "score thresholds agree between backend and dashboard",
       f"backend {backend_bands}, dashboard {hardcoded or 'served by API'}")
+
+# ----------------------------------------------------------------------- 9
+# Counts written into prose drift the moment a test is added. Rather than trust them, collect the
+# suite and compare. Documented figures that no longer match are a defect like any other.
+import subprocess  # noqa: E402
+
+DOC_COUNTS = [
+    (ROOT / "README.md", re.compile(r"`cd backend && pytest` \((\d+)\)")),
+    (ROOT / "README.md", re.compile(r"`cd frontend && npm test` \((\d+)\)")),
+    (ROOT / "docs" / "PIPELINE.md", re.compile(r"#\s*(\d+) backend tests")),
+]
+
+
+def collected_backend_tests() -> int | None:
+    """How many tests pytest actually collects, or None if it cannot be run here."""
+    try:
+        r = subprocess.run([sys.executable, "-m", "pytest", "--collect-only", "-q"],
+                           cwd=BACKEND, capture_output=True, text=True, timeout=600)
+    except Exception:
+        return None
+    m = re.search(r"^(\d+) tests? collected", r.stdout, re.M)
+    return int(m.group(1)) if m else None
+
+
+def frontend_tests() -> int:
+    d = ROOT / "frontend" / "src" / "test"
+    return sum(len(re.findall(r"^\s*it\(", f.read_text(encoding="utf-8"), re.M))
+               for f in list(d.glob("*.js")) + list(d.glob("*.jsx")))
+
+
+n_back, n_front = collected_backend_tests(), frontend_tests()
+if n_back is None:
+    check(True, "documented test counts match the suite", "pytest not runnable here; skipped")
+else:
+    actual = {"backend": n_back, "frontend": n_front}
+    stale = []
+    for path, pat in DOC_COUNTS:
+        if not path.exists():
+            continue
+        for claimed in pat.findall(path.read_text(encoding="utf-8")):
+            want = n_front if "npm test" in pat.pattern else n_back
+            if int(claimed) != want:
+                stale.append(f"{path.relative_to(ROOT)} says {claimed}, actual {want}")
+    check(not stale, "documented test counts match the suite",
+          "; ".join(stale) if stale else f"{actual['backend']} backend, {actual['frontend']} frontend")
+
 
 # ----------------------------------------------------------------------- report
 print("\nPROVENANCE AUDIT\n" + "=" * 72)

@@ -35,7 +35,7 @@ python scripts/evaluate_xgb.py            # docs/results/xgb_baseline.json (+ .m
 python scripts/evaluate_uncertainty.py    # docs/results/uncertainty.md
 python scripts/evaluate_benchmarks.py     # docs/results/benchmarks.md   (needs torch)
 python scripts/train.py                   # models/
-pytest                                    # 104 backend tests
+pytest                                    # 109 backend tests
 uvicorn app.main:app --reload             # http://localhost:8000/docs
 cd ../frontend && npm test                # 20 dashboard tests
 ```

@@ -104,7 +104,7 @@ npm install && cp .env.example .env                  # VITE_API_URL=http://local
 npm run dev                                          # http://localhost:5173
 ```
 
-Tests: `cd backend && pytest` (104) and `cd frontend && npm test` (20). Neither needs the network
+Tests: `cd backend && pytest` (109) and `cd frontend && npm test` (20). Neither needs the network
 or the raw release — the live paths are exercised against a seeded cache with the fetchers stubbed
 to fail, so a regression that bypasses the cache shows up as an error rather than a slow test.
 
