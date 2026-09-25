@@ -165,6 +165,17 @@ now checks every outbound URL against the imagery hosts before GDAL sees it: htt
 embedded credentials, host on the allowlist. Scenes carrying a rejected href are skipped with a
 warning rather than failing the request.
 
+*Correction, same day.* The first version of that check validated **every** asset advertised in the
+catalogue entry, not just the twelve the extractor opens. Earth Search also lists nineteen
+JPEG-2000 and metadata assets under `s3://`, none of which is ever fetched, so a single one of them
+disqualified the whole scene — and with it every scene in the archive. The global live path was
+silently dead for all non-US sites until an end-to-end run surfaced it. The allowlist now applies to
+exactly the assets that are handed to GDAL, which is the property that was wanted; the guarantee is
+unchanged and the extra breadth bought nothing. `test_live_global.py` pins both halves: a scene
+survives `s3://` hrefs on assets it never reads, and is still rejected when a *fetched* asset points
+off the allowlist. The lesson recorded here is that a guard on a network path needs a test that
+exercises the real catalogue shape, not only a stubbed fetcher.
+
 **Prompt injection.** `/live/coords?name=` is free text that reached the model's prompt as the
 LOCATION line. Because the prompt is line-oriented, a label containing newlines could take the
 shape of a fresh instruction. `netguard.safe_label` flattens control characters and whitespace and

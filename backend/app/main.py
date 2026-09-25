@@ -418,6 +418,22 @@ def _attach_baseline(result: dict, lat: float, lon: float) -> dict | None:
     }
 
 
+def _stale_fallback(lat: float, lon: float, source: str, note: str) -> tuple[dict, list, str, dict] | None:
+    """The last successfully extracted scene here, flagged stale, or None if nothing is cached.
+
+    Used whenever a live fetch cannot produce a current observation. A stale real measurement that
+    says it is stale is more useful than an error; what it must never do is look current.
+    """
+    for src in (("usgs", "global") if source == "auto" else (source,)):
+        cached, tried, _ = livecache.load(lat, lon, src)
+        if cached is not None:
+            info = cached.pop("_cache")
+            log.info("serving stale cache (%s, %.1f h old) at %.4f,%.4f: %s",
+                     src, info["age_hours"], lat, lon, note)
+            return cached, tried or [], src, {**info, "stale": True, "note": note}
+    return None
+
+
 def _fetch_live(lat: float, lon: float, source: str) -> tuple[dict, list, str, dict | None]:
     """Get one live observation, preferring a fresh disk-cached copy.
 
@@ -460,17 +476,22 @@ def _fetch_live(lat: float, lon: float, source: str) -> tuple[dict, list, str, d
         raise
     except Exception as exc:  # noqa: BLE001 — network failures fall back to a stale copy if we have one
         log.warning("live extraction failed at %.4f,%.4f: %s", lat, lon, exc)
-        for src in (("usgs", "global") if source == "auto" else (source,)):
-            obs, tried, _ = livecache.load(lat, lon, src)
-            if obs is not None:
-                info = obs.pop("_cache")
-                log.info("serving stale cache (%s, %.1f h old) after network failure", src, info["age_hours"])
-                return obs, tried or [], src, {**info, "stale": True,
-                                               "note": "imagery service was unreachable; showing the last successfully "
-                                                       "retrieved scene for this location"}
+        fallback = _stale_fallback(lat, lon, source,
+                                   "imagery service was unreachable; showing the last successfully "
+                                   "retrieved scene for this location")
+        if fallback is not None:
+            return fallback
         raise HTTPException(503, f"imagery service unreachable or failed ({type(exc).__name__}); retry shortly") from exc
 
     if obs is None:
+        # The archive answered, but nothing it offered was usable — cloud, glint or no open water.
+        # That is routine, so a previously extracted scene is better than an error, provided it is
+        # labelled stale rather than passed off as current.
+        fallback = _stale_fallback(lat, lon, source,
+                                   "no usable scene in the latest overpasses (cloud, glint or no open "
+                                   "water); showing the last successfully retrieved scene for this location")
+        if fallback is not None:
+            return fallback
         raise HTTPException(503, f"no usable recent scene at this location (cloud/glint/no open water in the last "
                                  f"{len(tried)} overpasses): " + "; ".join(f"{t['date'][:10]} {t['reason']}" for t in tried))
     livecache.save(lat, lon, used, obs, tried)

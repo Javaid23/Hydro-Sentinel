@@ -88,16 +88,17 @@ def stac_search(lat: float, lon: float, days: int = 60, max_cloud: float = 60.0,
     out = []
     for f in feats:
         p, a = f["properties"], f["assets"]
-        if not all(k in a for k in list(ASSET_FOR_BAND.values()) + ["scl"]):
+        needed = [*ASSET_FOR_BAND.values(), "scl"]
+        if not all(k in a for k in needed):
             continue
-        # Asset hrefs are supplied by a third party. Check every one against the imagery
-        # allowlist here, so a compromised or spoofed catalogue cannot steer GDAL elsewhere.
+        # Asset hrefs are supplied by a third party, so every URL handed to GDAL is checked against
+        # the imagery allowlist. Only the assets actually read are checked: the same catalogue entry
+        # also advertises JPEG-2000 and metadata assets under s3://, and refusing a scene over a URL
+        # that is never fetched would discard every scene in the archive.
         try:
-            assets = {k: allowed_url(v["href"]) for k, v in a.items() if isinstance(v.get("href"), str)}
-        except BlockedURL as exc:
+            assets = {k: allowed_url(a[k]["href"]) for k in needed}
+        except (BlockedURL, KeyError, TypeError) as exc:
             log.warning("skipping scene %s: %s", f.get("id"), exc)
-            continue
-        if not all(k in assets for k in list(ASSET_FOR_BAND.values()) + ["scl"]):
             continue
         out.append(GlobalScene(
             scene_id=str(f["id"]), tile=str(p.get("grid:code", "")).replace("MGRS-", "T"),

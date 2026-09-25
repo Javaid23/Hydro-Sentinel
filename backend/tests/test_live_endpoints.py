@@ -178,3 +178,43 @@ def test_non_conus_coordinates_never_reach_the_usgs_product(client, monkeypatch)
     monkeypatch.setattr(live, "latest_usable", no_tile)
     r = client.get("/live/coords", params={"lat": LAT, "lon": LON, "source": "usgs"})
     assert r.status_code == 404 and "conterminous" in r.json()["detail"]
+
+
+def test_all_scenes_cloudy_falls_back_to_a_flagged_stale_entry(client, offline, monkeypatch):
+    """The archive answered, but nothing it offered was usable.
+
+    Cloud over the site is routine, so discarding a previously extracted scene and returning an
+    error wastes a good observation. It may be served, but only labelled stale.
+    """
+    from app.main import _live_cache
+    _live_cache.clear()
+    _age_the_entry(offline)
+    monkeypatch.setattr(live_global, "newest_scene_id", lambda *_a, **_k: "S2C_43RDQ_20260930_0_L2A")
+    monkeypatch.setattr(live, "latest_usable", lambda *_a, **_k: (_ for _ in ()).throw(
+        LookupError("conterminous United States only")))
+    monkeypatch.setattr(live_global, "latest_usable", lambda *_a, **_k: (
+        None, [{"scene": "S2C_43RDQ_20260930_0_L2A", "date": "2026-09-30",
+                "usable": False, "reason": "cloud over the buffer", "n_mask": 0}]))
+
+    r = client.get("/live/coords", params={"lat": LAT, "lon": LON})
+    assert r.status_code == 200, "a usable cached scene must not be thrown away over a cloudy overpass"
+    j = r.json()
+    assert j["cache"]["stale"] is True, "a stale answer must be labelled, not passed off as current"
+    assert "no usable scene" in (j["cache"]["note"] or "")
+    assert j["observation"]["scene"] == SCENE
+
+
+def test_no_usable_scene_and_nothing_cached_is_still_an_error(client, offline, monkeypatch):
+    """The fallback must not invent an observation where none was ever retrieved."""
+    from app.main import _live_cache
+    _live_cache.clear()
+    for p in (livecache.CACHE_DIR).glob("*.json"):
+        p.unlink()
+    monkeypatch.setattr(live, "latest_usable", lambda *_a, **_k: (_ for _ in ()).throw(
+        LookupError("conterminous United States only")))
+    monkeypatch.setattr(live_global, "latest_usable", lambda *_a, **_k: (
+        None, [{"scene": "x", "date": "2026-09-30", "usable": False, "reason": "cloud", "n_mask": 0}]))
+
+    r = client.get("/live/coords", params={"lat": LAT, "lon": LON})
+    assert r.status_code == 503
+    assert "no usable recent scene" in r.json()["detail"]
