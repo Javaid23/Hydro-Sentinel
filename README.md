@@ -104,6 +104,10 @@ npm install && cp .env.example .env                  # VITE_API_URL=http://local
 npm run dev                                          # http://localhost:5173
 ```
 
+Tests: `cd backend && pytest` (104) and `cd frontend && npm test` (20). Neither needs the network
+or the raw release — the live paths are exercised against a seeded cache with the fetchers stubbed
+to fail, so a regression that bypasses the cache shows up as an error rather than a slow test.
+
 Trained artifacts (`models/`) and processed data (`data/processed/`) are committed, so the API
 runs without the 1.4 GB raw release. To rebuild from source data see [docs/PIPELINE.md](docs/PIPELINE.md).
 
@@ -119,8 +123,9 @@ backend/
                     live (USGS feed), live_global (Copernicus), livecache, llm, assess
   app/              FastAPI routes and Pydantic schemas
   scripts/          inspect_data, preprocess, evaluate_*, train, warm_live_cache
-  tests/            46 tests
-frontend/src/       React dashboard (charts.jsx, panels.jsx, App.jsx)
+  tests/            backend tests (pytest)
+frontend/src/       React dashboard (charts.jsx, panels.jsx, network.jsx, App.jsx)
+  test/             frontend tests (vitest + testing-library)
 models/             trained artifacts (committed, ~2 MB, so the API deploys from the repo)
 data/processed/     cleaned per-target tables + observation index
 docs/               PIPELINE.md (end-to-end trace), decisions.md (D1–D8), results/

@@ -186,3 +186,28 @@ hidden.
 
 Also pinned `setuptools>=83.0.0`, clearing the two advisories `pip-audit` reported. Frontend
 dependencies audit clean.
+
+## D10 — Closing the two coverage gaps found in review (2026-09-25)
+
+**The live endpoints were untested.** They are the paths a visitor actually clicks, but they reach
+public imagery archives, so they had no automated cover. `tests/test_live_endpoints.py` seeds the
+disk cache and replaces both fetchers with functions that raise, so a passing test proves the
+request was served without touching the network — and a regression that bypasses the cache appears
+as an error rather than a slow test. Seven cases: the cached hit, the out-of-region response
+withholding percentile, status and score, the out-of-distribution report, revalidation of a stale
+entry, a genuine refetch when a newer scene exists, the stale-but-flagged fallback when the archive
+is unreachable, and the refusal to ask the CONUS product about a non-US coordinate.
+
+**The dashboard had no tests at all.** 1,420 lines of React were verified only by screenshotting,
+which had already missed three defects until caught by eye. Vitest with Testing Library now covers
+the honesty guarantees *as rendered*: a missing value shows an em dash rather than a zero, an
+out-of-region view explains the absent score instead of drawing an empty gauge, an indicator with
+no reference never shows a fabricated status, the Local Anomaly Score always states it is not
+ground truth and warns when its window is too narrow for seasonality, and a failed language-model
+call leaves every number in place. The API client's retryable-versus-permanent classification is
+covered too, since getting it wrong either hides a transient hiccup or invites pointless retries.
+
+The provenance audit gained a check while this was done: it scanned every frontend source for
+fabricated content, and the new test files legitimately contain stubs. Rather than relax the rule,
+test directories are now excluded from the serving-path scan and a separate check asserts that no
+frontend double appears outside them. 13 checks, all passing.

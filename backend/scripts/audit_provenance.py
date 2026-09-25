@@ -34,6 +34,13 @@ ROOT = C.ROOT_DIR
 BACKEND = C.BACKEND_DIR
 SERVING = [BACKEND / "hydrosentinel", BACKEND / "app"]
 FRONTEND = ROOT / "frontend" / "src"
+# Tests legitimately contain doubles and stubs. They are excluded from the serving-path scan and
+# checked separately: check 2 asserts that nothing under them leaks into production code.
+TEST_DIRS = ("tests", "test", "__tests__")
+
+
+def is_test(path: Path) -> bool:
+    return any(part in TEST_DIRS for part in path.parts) or path.name.endswith((".test.js", ".test.jsx", ".spec.js"))
 
 # Words that would indicate fabricated content if they appeared in code that serves users.
 # Matched case-insensitively against source lines, excluding comments that merely discuss them.
@@ -75,18 +82,25 @@ def source_lines(path: Path) -> list[tuple[int, str]]:
 
 # ----------------------------------------------------------------------- 1 & 2
 hits = []
-for f in py_files(SERVING) + [p for p in FRONTEND.rglob("*.jsx")] + [p for p in FRONTEND.rglob("*.js")]:
+frontend_sources = [p for p in FRONTEND.rglob("*.jsx") if not is_test(p)] +                    [p for p in FRONTEND.rglob("*.js") if not is_test(p)]
+for f in py_files(SERVING) + frontend_sources:
     for n, line in (source_lines(f) if f.suffix == ".py" else
                     [(i, l) for i, l in enumerate(f.read_text(encoding="utf-8").splitlines(), 1)
                      if not l.strip().startswith(("//", "*", "/*"))]):
         if BANNED.search(line):
             hits.append(f"{f.relative_to(ROOT)}:{n}: {line.strip()[:70]}")
 check(not hits, "no fabricated content in the serving path",
-      "; ".join(hits[:3]) if hits else f"scanned {len(py_files(SERVING))} python + frontend sources")
+      "; ".join(hits[:3]) if hits else
+      f"scanned {len(py_files(SERVING))} python and {len(frontend_sources)} frontend sources (tests excluded)")
 
 doubles = [f.relative_to(ROOT) for f in py_files(SERVING)
            if re.search(r"monkeypatch|FakeClient|_fake_reads", f.read_text(encoding="utf-8"))]
 check(not doubles, "test doubles confined to tests/", str(doubles) if doubles else "none in production code")
+
+front_doubles = [p.relative_to(ROOT) for p in frontend_sources
+                 if re.search(r"vi\.mock|jest\.mock|mockResolvedValue", p.read_text(encoding="utf-8"))]
+check(not front_doubles, "no frontend test doubles outside its test directory",
+      str(front_doubles) if front_doubles else f"{len(frontend_sources)} frontend sources clean")
 
 # ----------------------------------------------------------------------- 3 & 4
 audit_path = C.DATA_PROCESSED / "preprocess_audit.json"
