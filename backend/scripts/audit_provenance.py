@@ -82,16 +82,17 @@ def source_lines(path: Path) -> list[tuple[int, str]]:
 
 # ----------------------------------------------------------------------- 1 & 2
 hits = []
-frontend_sources = [p for p in FRONTEND.rglob("*.jsx") if not is_test(p)] +                    [p for p in FRONTEND.rglob("*.js") if not is_test(p)]
+frontend_sources = [
+    p for pattern in ("*.jsx", "*.js") for p in FRONTEND.rglob(pattern) if not is_test(p)
+]
 for f in py_files(SERVING) + frontend_sources:
     for n, line in (source_lines(f) if f.suffix == ".py" else
                     [(i, l) for i, l in enumerate(f.read_text(encoding="utf-8").splitlines(), 1)
                      if not l.strip().startswith(("//", "*", "/*"))]):
         if BANNED.search(line):
             hits.append(f"{f.relative_to(ROOT)}:{n}: {line.strip()[:70]}")
-check(not hits, "no fabricated content in the serving path",
-      "; ".join(hits[:3]) if hits else
-      f"scanned {len(py_files(SERVING))} python and {len(frontend_sources)} frontend sources (tests excluded)")
+_scanned = f"scanned {len(py_files(SERVING))} python and {len(frontend_sources)} frontend sources (tests excluded)"
+check(not hits, "no fabricated content in the serving path", "; ".join(hits[:3]) if hits else _scanned)
 
 doubles = [f.relative_to(ROOT) for f in py_files(SERVING)
            if re.search(r"monkeypatch|FakeClient|_fake_reads", f.read_text(encoding="utf-8"))]

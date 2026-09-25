@@ -28,7 +28,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from hydrosentinel import config as C  # noqa: E402
-from hydrosentinel import data, evaluation as ev, features  # noqa: E402
+from hydrosentinel import data, features  # noqa: E402
+from hydrosentinel import evaluation as ev
 from hydrosentinel.model import TargetModel  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
@@ -92,14 +93,14 @@ def main() -> int:
           "test of whether that choice affects the results.\n",
           "\n| Target | Records | Approved | Approved share | LOBO R²_log (all) | LOBO R²_log (approved only) |\n",
           "|---|---|---|---|---|---|\n"]
-    for t, r in rows.items():
+    for r in rows.values():
         a, ap = r["all"], r["approved"]
         md.append(f"| {r['label']} | {r['n_all']:,} | {r['n_approved']:,} | {r['share_approved']:.0%} | "
                   f"{a['r2_log'] if a['evaluable'] else '—'} | "
                   f"{ap['r2_log'] if ap['evaluable'] else 'not evaluable'} |\n")
 
     md.append("\n## What this shows\n\n")
-    for t, r in rows.items():
+    for r in rows.values():
         a, ap = r["all"], r["approved"]
         md.append(f"**{r['label']}** — ")
         if not ap["evaluable"]:

@@ -1,5 +1,5 @@
 # Does keeping provisional measurements change the conclusions?
-Generated 2026-09-25 16:09 UTC by `backend/scripts/evaluate_data_quality.py`.
+Generated 2026-09-25 16:37 UTC by `backend/scripts/evaluate_data_quality.py`.
 
 USGS marks each sonde reading **approved (A)** or **provisional (P)**. Provisional values have not been through the agency's review. Preprocessing keeps both and records the code; this is the test of whether that choice affects the results.
 
