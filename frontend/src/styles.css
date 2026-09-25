@@ -64,8 +64,6 @@ a { color: var(--accent); }
 .brand { display: flex; align-items: baseline; gap: 12px; }
 .brand h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
 .brand .tagline { color: var(--text-secondary); font-size: 14px; }
-.flow { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
-.flow span + span::before { content: "→"; margin-right: 6px; }
 
 .controls { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; margin-bottom: 20px; }
 .controls > * { min-width: 0; }
@@ -192,7 +190,6 @@ details.live-note code { font-size: 12px; background: var(--surface-1); padding:
 @media (max-width: 640px) {
   .app { padding: 16px 12px 48px; }
   .brand { flex-direction: column; gap: 2px; }
-  .flow { display: none; }
   .hero { gap: 16px; }
   .hero .number { font-size: 44px; }
   .iv-row { grid-template-columns: 1fr; gap: 6px; }

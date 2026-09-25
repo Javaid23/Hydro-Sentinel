@@ -105,7 +105,6 @@ export default function App() {
           <h1>HydroSentinel</h1>
           <span className="tagline">Satellite-based freshwater condition assessment</span>
         </div>
-        <div className="flow"><span>Observe</span><span>Predict</span><span>Explain</span><span>Assess</span><span>Act</span></div>
       </header>
 
       <div className="modebar">
