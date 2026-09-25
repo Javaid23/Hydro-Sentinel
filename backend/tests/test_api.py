@@ -15,6 +15,7 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture(scope="module")
 def client():
     from fastapi.testclient import TestClient
+
     from app.main import app
     with TestClient(app) as c:
         yield c

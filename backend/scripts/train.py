@@ -21,16 +21,16 @@ import argparse
 import json
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import joblib
-import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from hydrosentinel import config as C  # noqa: E402
-from hydrosentinel import data, evaluation as ev, features  # noqa: E402
+from hydrosentinel import data, features  # noqa: E402
+from hydrosentinel import evaluation as ev
 from hydrosentinel.explain import Explainer  # noqa: E402
 from hydrosentinel.model import TargetModel  # noqa: E402
 from hydrosentinel.stress import ReferenceDistribution  # noqa: E402
@@ -89,7 +89,7 @@ def train_target(target: str, alpha: float, out_dir: Path) -> dict:
                         df.drop_duplicates("site_no").set_index("site_no")[["lat", "lon"]].iterrows()},
         "reference": reference.summary(),
         "conformal": conformal.to_dict(),
-        "trained_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "trained_utc": datetime.now(UTC).isoformat(timespec="seconds"),
     }
     (tdir / "metadata.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return meta
@@ -102,7 +102,7 @@ def main() -> int:
     ap.add_argument("--out-dir", type=Path, default=C.MODELS_DIR)
     args = ap.parse_args()
 
-    manifest = {"trained_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    manifest = {"trained_utc": datetime.now(UTC).isoformat(timespec="seconds"),
                 "alpha": args.alpha, "targets": {}}
     for t in args.targets:
         meta = train_target(t, args.alpha, args.out_dir)

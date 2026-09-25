@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # make `hydrosentinel` importable
@@ -47,7 +47,7 @@ def main() -> int:
     log.info("wrote observations.parquet (%s scene×site observations, %d sites)", f"{len(obs):,}", obs["site_no"].nunique())
 
     meta = {
-        "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "raw_rows_target_params": int(len(raw)),
         "distinct_matchups": int(len(matched)),
         "filter": C.MATCHUP_FILTER.__dict__,

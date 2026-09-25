@@ -14,7 +14,8 @@ def _raw_frame() -> pd.DataFrame:
 
     def add(scene, offset_h, parm, value, cd="A", npix=100, trunc=0, huc4=204, b01=250.0):
         r = {
-            "scene": scene, "scene_datetime_UTC": str(scene_t), "sample_datetime_UTC": str(scene_t + pd.Timedelta(hours=offset_h)),
+            "scene": scene, "scene_datetime_UTC": str(scene_t),
+            "sample_datetime_UTC": str(scene_t + pd.Timedelta(hours=offset_h)),
             "site_no": "0001", "station_nm": "Test", "parm_cd": parm, "Lat": 40.0, "Long": -75.0,
             "MeasurementValue": value, "MeasurementCd": cd, "site_tp_cd": "ST", "huc4": huc4,
             "nhd_feature_type": "Flowline", "n_l2flag": 50, "l2flag_center": 1, "n_mask": 80, "truncated": trunc,

@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 log = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ def render_context(a: dict) -> str:
         f"missing: {', '.join(s['indicators_missing']) or 'none'})",
         "",
     ]
-    for k, v in a["indicators"].items():
+    for v in a["indicators"].values():
         iv = v["interval"]
         lines.append(f"INDICATOR {v['label']} [{v['unit']}]:")
         lines.append(f"  predicted {v['prediction']}; 90% interval {iv['lower']}-{iv['upper']}"
@@ -145,7 +145,7 @@ def explain(assessment: dict, model: str | None = None, temperature: float = 0.2
                               f"response (raise GROQ_MAX_TOKENS or lower GROQ_REASONING_EFFORT)")
             log.warning("LLM explanation failed: %s", exc)
             return None, _reason(exc)
-        out.update({"model": model, "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        out.update({"model": model, "generated_utc": datetime.now(UTC).isoformat(timespec="seconds"),
                     "disclaimer": DISCLAIMER})
         return out, None
     return None, "explanation unavailable: the model did not return valid JSON within the token budget"

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import numpy as np
@@ -68,7 +68,7 @@ class GlobalScene:
 
 def stac_search(lat: float, lon: float, days: int = 60, max_cloud: float = 60.0, limit: int = 12) -> list[GlobalScene]:
     """Recent L2A scenes covering the point, newest first."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     body = {
         "collections": [STAC_COLLECTION],
         "intersects": {"type": "Point", "coordinates": [lon, lat]},
@@ -101,9 +101,9 @@ def _read_window_resampled(url: str, lat: float, lon: float) -> tuple[np.ndarray
     """Read the block around the point and resample it onto the 20 m WINDOW grid
     (10 m assets averaged, 60 m nearest), so every band lands on the same 25 x 25 grid."""
     import rasterio
+    from pyproj import Transformer
     from rasterio.enums import Resampling
     from rasterio.windows import Window
-    from pyproj import Transformer
 
     with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif"):
         with rasterio.open(f"/vsicurl/{url}") as ds:

@@ -23,7 +23,7 @@ import json
 import logging
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -32,7 +32,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from hydrosentinel import config as C  # noqa: E402
-from hydrosentinel import data, evaluation as ev, features  # noqa: E402
+from hydrosentinel import data, features  # noqa: E402
+from hydrosentinel import evaluation as ev
 from hydrosentinel.model import TargetModel  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
@@ -107,13 +108,13 @@ def write_report(rows: list[dict], out_dir: Path, args: argparse.Namespace) -> N
     out_dir.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(rows)
     (out_dir / "xgb_baseline.json").write_text(json.dumps({
-        "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "features": {"include_std": not args.no_std, "include_qa": not args.no_qa},
         "results": rows,
     }, indent=2, default=float), encoding="utf-8")
 
     md = ["# XGBoost baseline — leakage-safe and LOBO evaluation\n",
-          f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC by `backend/scripts/evaluate_xgb.py`. "
+          f"Generated {datetime.now(UTC):%Y-%m-%d %H:%M} UTC by `backend/scripts/evaluate_xgb.py`. "
           f"Features: band means + ratios/indices"
           + ("" if args.no_std else " + band std") + ("" if args.no_qa else " + scene QA") + ".\n",
           "\nMetrics are in original units (FNU, µg/L, µg/L QSE) unless suffixed `_log` (log1p space). "

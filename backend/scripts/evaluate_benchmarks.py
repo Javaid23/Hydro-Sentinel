@@ -24,7 +24,7 @@ import json
 import logging
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -35,7 +35,8 @@ from sklearn.model_selection import GroupShuffleSplit
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from hydrosentinel import config as C  # noqa: E402
-from hydrosentinel import data, evaluation as ev, features  # noqa: E402
+from hydrosentinel import data, features  # noqa: E402
+from hydrosentinel import evaluation as ev
 from hydrosentinel.benchmarks import common as B  # noqa: E402
 from hydrosentinel.benchmarks.models import FTTransformer, LSTMRegressor  # noqa: E402
 from hydrosentinel.model import TargetModel  # noqa: E402
@@ -73,7 +74,8 @@ def evaluate_fold(df, X, y, split: ev.Split, target: str, window: int, do_lstm=T
     t0 = time.time()
     xgb = fit_xgb(X, y, fit_i, val_i)
     p_xgb = xgb.predict(X.iloc[te])
-    rows.append(_row(target, "xgboost", split, {"fit_seconds": round(time.time() - t0, 1)}, **ev.regression_metrics(y[te], p_xgb)))
+    rows.append(_row(target, "xgboost", split, {"fit_seconds": round(time.time() - t0, 1)},
+                     **ev.regression_metrics(y[te], p_xgb)))
 
     # ---- standardised features for the neural models (fit on training portion)
     sc = B.Scaler.fit(X.iloc[tr].to_numpy(dtype=np.float32))
@@ -105,7 +107,8 @@ def evaluate_fold(df, X, y, split: ev.Split, target: str, window: int, do_lstm=T
             sel = np.array([pos[r] for r in k_te])
             rows.append(_row(target, "xgb@lstm_rows", split, {}, **ev.regression_metrics(y[k_te], p_xgb[sel])))
         else:
-            rows.append(_row(target, "lstm", split, {"skipped": f"too few sequence-eligible rows (fit={len(k_fit)}, val={len(k_val)}, test={len(k_te)})"}, n=int(len(k_te))))
+            skipped = f"too few sequence-eligible rows (fit={len(k_fit)}, val={len(k_val)}, test={len(k_te)})"
+            rows.append(_row(target, "lstm", split, {"skipped": skipped}, n=int(len(k_te))))
 
     # ---- Stacking XGB + FTT with a site-disjoint blend slice
     if do_stack:
@@ -114,7 +117,8 @@ def evaluate_fold(df, X, y, split: ev.Split, target: str, window: int, do_lstm=T
             gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=C.RANDOM_STATE)
             base_rel, blend_rel = next(gss.split(df_tr, groups=df_tr["site_no"]))
         else:
-            rng = np.random.default_rng(C.RANDOM_STATE); perm = rng.permutation(len(tr))
+            rng = np.random.default_rng(C.RANDOM_STATE)
+            perm = rng.permutation(len(tr))
             blend_rel, base_rel = perm[: len(tr) // 5], perm[len(tr) // 5:]
         base_i, blend_i = tr[base_rel], tr[blend_rel]
         b_fit_rel, b_val_rel = ev.site_validation_slice(df.iloc[base_i])
@@ -163,11 +167,11 @@ def load_all_partials(out_dir: Path) -> list[dict]:
 def write_report(rows: list[dict], out_dir: Path, args) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "benchmarks.json").write_text(json.dumps({
-        "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"), "window": args.window, "results": rows,
+        "generated_utc": datetime.now(UTC).isoformat(timespec="seconds"), "window": args.window, "results": rows,
     }, indent=2, default=float), encoding="utf-8")
     df = pd.DataFrame(rows)
     md = ["# Model benchmarks — LSTM, FT-Transformer, stacking vs XGBoost\n",
-          f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC by `backend/scripts/evaluate_benchmarks.py` "
+          f"Generated {datetime.now(UTC):%Y-%m-%d %H:%M} UTC by `backend/scripts/evaluate_benchmarks.py` "
           f"(LSTM window = {args.window} observations). Same folds and features as the baseline; see the script "
           "docstring for the fairness rules. Metrics in original units; `r2_log` in log1p space.\n"]
     for t in df["target"].unique():
@@ -177,7 +181,8 @@ def write_report(rows: list[dict], out_dir: Path, args) -> None:
             if sub.empty:
                 continue
             md.append(f"\n### {split}\n\n")
-            cols = ["model", "held_out", "n", "r2", "mae", "rmse", "r2_log", "median_factor_err", "fit_seconds", "epochs", "skipped"]
+            cols = ["model", "held_out", "n", "r2", "mae", "rmse", "r2_log", "median_factor_err",
+                    "fit_seconds", "epochs", "skipped"]
             md.append(ev.to_markdown(sub[[c for c in cols if c in sub.columns]].sort_values(["held_out", "model"])))
         # LOBO mean per model
         lob = df[(df["target"] == t) & (df["split"] == "lobo") & df["r2"].notna()]

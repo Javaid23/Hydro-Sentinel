@@ -1,6 +1,7 @@
 """Location baselines: percentile maths, cache round-trip, and the guard rails on what they claim."""
 
-import json
+
+from datetime import UTC
 
 import numpy as np
 import pytest
@@ -78,10 +79,10 @@ def test_thresholds_are_conservative():
 
 def test_build_refuses_when_too_few_scenes_are_usable(monkeypatch):
     """Cloud rejects most scenes at some locations; the result must be an error, not a thin baseline."""
-    from hydrosentinel import live_global as G
+    from datetime import datetime, timedelta
 
-    from datetime import datetime, timedelta, timezone
-    base = datetime(2026, 9, 1, tzinfo=timezone.utc)
+    from hydrosentinel import live_global as G
+    base = datetime(2026, 9, 1, tzinfo=UTC)
     fakes = [_Scene(base - timedelta(days=30 * i)) for i in range(6)]
     monkeypatch.setattr(G, "stac_search", lambda *a, **k: fakes)
     monkeypatch.setattr(baseline, "_extract_one", lambda scene, lat, lon: None)
@@ -119,8 +120,8 @@ class _Scene:
 
 
 def _archive(n=140, step_days=5):
-    from datetime import datetime, timedelta, timezone
-    now = datetime(2026, 9, 25, tzinfo=timezone.utc)
+    from datetime import datetime, timedelta
+    now = datetime(2026, 9, 25, tzinfo=UTC)
     return [_Scene(now - timedelta(days=step_days * i)) for i in range(n)]
 
 

@@ -37,3 +37,6 @@ data/live_cache/
 
 # Location baselines built from the satellite archive (rebuild via /live/baseline)
 data/baseline_cache/
+
+# Per-target intermediate results; docs/results/benchmarks.{md,json} are the deliverables
+docs/results/benchmarks_partial/

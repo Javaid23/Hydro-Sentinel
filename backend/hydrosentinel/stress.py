@@ -49,7 +49,7 @@ class ReferenceDistribution:
     site_basin: dict[str, str] = field(default_factory=dict)
 
     @classmethod
-    def fit(cls, df: pd.DataFrame, target: str, min_site_obs: int = MIN_SITE_OBS) -> "ReferenceDistribution":
+    def fit(cls, df: pd.DataFrame, target: str, min_site_obs: int = MIN_SITE_OBS) -> ReferenceDistribution:
         """df: processed rows used as reference (training data only). Needs site_no, basin, value."""
         rd = cls(target=target, min_site_obs=min_site_obs)
         for site, g in df.groupby("site_no"):

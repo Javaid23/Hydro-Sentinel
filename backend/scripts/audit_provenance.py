@@ -116,6 +116,7 @@ else:
 
 # ----------------------------------------------------------------------- 5
 from hydrosentinel import live, live_global  # noqa: E402
+
 check(live.BUCKET == "usgs-wma-sentinel-2-aqr-acolite-dsf" and live.HTTP_BASE.startswith("https://"),
       "US imagery from the USGS public archive", live.HTTP_BASE)
 check(live_global.STAC_SEARCH.startswith("https://earth-search.aws.element84.com"),
@@ -141,6 +142,7 @@ check(not writes, "the LLM cannot write into the numeric assessment",
 
 # ----------------------------------------------------------------------- 8
 from hydrosentinel import stress  # noqa: E402
+
 front = (FRONTEND / "components" / "panels.jsx").read_text(encoding="utf-8")
 backend_bands = [b for b, _ in stress.STRESS_STATUS][:2]
 hardcoded = re.findall(r"score\s*>=\s*(\d+)", front)

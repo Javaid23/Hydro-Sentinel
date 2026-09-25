@@ -4,6 +4,31 @@ version = "0.1.0"
 description = "Satellite-based, uncertainty-aware freshwater ecosystem assessment"
 requires-python = ">=3.11"
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
 [tool.ruff]
-line-length = 110
+# Wider than PEP 8: scientific expressions and log format strings read better unbroken than
+# wrapped. This is the value the codebase actually holds to, so `ruff check` is usable as-is.
+line-length = 130
 target-version = "py311"
+
+[tool.ruff.lint]
+# The rules this codebase is actually held to, so `ruff check` passes clean and stays useful as a
+# signal. Deliberately not ruff's full default set: several of its opinions (implicit string
+# concatenation, comprehension style) would churn code that reads fine as written.
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+    "E741",   # ambiguous names: `l` is used for a fitted model in a few scientific expressions
+    "B008",   # FastAPI's Depends/Query defaults are function calls by design
+    "B905",   # zip(strict=) — the paired sequences here are built together and cannot differ
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Holds the LLM system prompt: prose lines that must not be reflowed, since the wrapping would
+# become part of the prompt the model sees.
+"hydrosentinel/llm.py" = ["E501"]
+# Test fixtures use semicolons to keep dense setup on one line, which reads better than a dozen
+# one-statement lines of scaffolding.
+"tests/*" = ["E702"]

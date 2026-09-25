@@ -1,6 +1,6 @@
 """Live extraction logic on synthetic windows (no network): masks, statistics, quality rule, scene parsing."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 import pytest
@@ -21,7 +21,7 @@ def test_scene_id_parsing_and_urls():
     sid = "S2B_MSIAQR_20260911T190909_N0512_R056_T10TER_20260911T210931"
     m = live.SCENE_RE.match(sid)
     assert m and m.group(1) == "S2B" and m.group(3) == "T10TER"
-    sc = live.Scene(sid, "T10TER", "S2B", datetime(2026, 9, 11, 19, 9, 9, tzinfo=timezone.utc))
+    sc = live.Scene(sid, "T10TER", "S2B", datetime(2026, 9, 11, 19, 9, 9, tzinfo=UTC))
     assert sc.url("B04").endswith("/version_01/T10TER/" + sid + "_B04.tif")
     assert sc.url("l2_flags").startswith("https://usgs-wma-sentinel-2-aqr-acolite-dsf.s3.us-west-2.amazonaws.com/")
 
@@ -43,7 +43,7 @@ def test_extract_observation_applies_masks_and_stats(monkeypatch):
 
     monkeypatch.setattr(live, "_read_window", fake_read)
     sc = live.Scene("S2A_MSIAQR_20260101T000000_N0512_R001_T10TER_20260101T000000", "T10TER", "S2A",
-                    datetime(2026, 1, 1, tzinfo=timezone.utc))
+                    datetime(2026, 1, 1, tzinfo=UTC))
     obs = live.extract_observation(sc, 45.0, -122.0)
 
     circle = live._circle_mask(n, live.BUFFER_M / live.GRID_M)
@@ -76,7 +76,7 @@ def test_passes_quality_mirrors_training_filter():
 
 def test_latest_usable_walks_back_and_reports(monkeypatch):
     scenes = [live.Scene(f"S2A_MSIAQR_2026010{d}T000000_N0512_R001_T10TER_2026010{d}T000000", "T10TER", "S2A",
-                         datetime(2026, 1, d, tzinfo=timezone.utc)) for d in (1, 2, 3)]
+                         datetime(2026, 1, d, tzinfo=UTC)) for d in (1, 2, 3)]
     monkeypatch.setattr(live, "recent_scenes", lambda tile, n=12, now=None: scenes)
     good = {f"{b}_n_pixels": 40 for b in C.BANDS}; good.update({f"{b}_buf250_mean": 1.0 for b in C.BANDS}); good["truncated"] = 0
     cloudy = dict(good); cloudy.update({f"{b}_n_pixels": 0 for b in C.BANDS})

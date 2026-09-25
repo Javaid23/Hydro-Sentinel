@@ -59,7 +59,7 @@ class TargetModel:
 
     # ----------------------------------------------------------------- fit / predict
     def fit(self, X: pd.DataFrame, y: np.ndarray,
-            X_val: pd.DataFrame | None = None, y_val: np.ndarray | None = None) -> "TargetModel":
+            X_val: pd.DataFrame | None = None, y_val: np.ndarray | None = None) -> TargetModel:
         """Fit on (X, y). If a validation set is given, use early stopping on it."""
         params = dict(self.params)
         fit_kwargs: dict[str, Any] = {}
@@ -74,7 +74,7 @@ class TargetModel:
         self.best_iteration_ = int(bi) if bi is not None else int(params["n_estimators"])
         return self
 
-    def refit_fixed(self, X: pd.DataFrame, y: np.ndarray, n_estimators: int) -> "TargetModel":
+    def refit_fixed(self, X: pd.DataFrame, y: np.ndarray, n_estimators: int) -> TargetModel:
         """Refit on all data with a fixed tree count (used after early stopping chose one)."""
         params = dict(self.params, n_estimators=int(n_estimators))
         self.booster_ = xgb.XGBRegressor(**params)
@@ -100,5 +100,5 @@ class TargetModel:
         return path
 
     @staticmethod
-    def load(path: Path) -> "TargetModel":
+    def load(path: Path) -> TargetModel:
         return joblib.load(path)

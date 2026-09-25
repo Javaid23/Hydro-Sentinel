@@ -27,7 +27,7 @@ import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 
 import httpx
@@ -99,13 +99,13 @@ def list_scenes(tile: str, year: int) -> list[Scene]:
             sid = k.split("/")[-1][: -len("_B04.tif")]
             m = SCENE_RE.match(sid)
             if m:
-                dt = datetime.strptime(m.group(2), "%Y%m%dT%H%M%S").replace(tzinfo=timezone.utc)
+                dt = datetime.strptime(m.group(2), "%Y%m%dT%H%M%S").replace(tzinfo=UTC)
                 scenes[sid] = Scene(sid, m.group(3), m.group(1), dt)
     return sorted(scenes.values(), key=lambda s: s.datetime_utc)
 
 
 def recent_scenes(tile: str, n: int = 12, now: datetime | None = None) -> list[Scene]:
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     out = list_scenes(tile, now.year)
     if len(out) < n:
         out = list_scenes(tile, now.year - 1) + out
@@ -122,8 +122,8 @@ def _circle_mask(n: int, radius_cells: float) -> np.ndarray:
 def _read_window(url: str, lat: float, lon: float) -> tuple[np.ndarray | None, bool, tuple[int, int]]:
     """Read the WINDOW×WINDOW block centred on (lat, lon). Returns (array or None, truncated, centre_rc)."""
     import rasterio
-    from rasterio.windows import Window
     from pyproj import Transformer
+    from rasterio.windows import Window
 
     with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif",
                       GDAL_HTTP_MULTIRANGE="YES", GDAL_HTTP_MERGE_CONSECUTIVE_RANGES="YES"):

@@ -39,7 +39,7 @@ class ConformalInterval:
     n_calibration_: int = 0
     calibration_scores_: np.ndarray = field(default_factory=lambda: np.array([]), repr=False)
 
-    def calibrate(self, X_cal: pd.DataFrame, y_cal: np.ndarray) -> "ConformalInterval":
+    def calibrate(self, X_cal: pd.DataFrame, y_cal: np.ndarray) -> ConformalInterval:
         z = self.model._fwd(np.asarray(y_cal, dtype=float))
         z_hat = self.model.predict_transformed(X_cal)
         scores = np.abs(z - z_hat)

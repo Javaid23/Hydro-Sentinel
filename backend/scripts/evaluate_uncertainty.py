@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -22,7 +22,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from hydrosentinel import config as C  # noqa: E402
-from hydrosentinel import data, evaluation as ev, features  # noqa: E402
+from hydrosentinel import data, features  # noqa: E402
+from hydrosentinel import evaluation as ev
 from hydrosentinel.model import TargetModel  # noqa: E402
 from hydrosentinel.uncertainty import ConformalInterval, empirical_coverage, split_calibration  # noqa: E402
 
@@ -66,7 +67,7 @@ def main() -> int:
     (out / "uncertainty.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
     df = pd.DataFrame(rows)
     md = ["# Conformal interval coverage under each evaluation design\n",
-          f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC by `backend/scripts/evaluate_uncertainty.py`. "
+          f"Generated {datetime.now(UTC):%Y-%m-%d %H:%M} UTC by `backend/scripts/evaluate_uncertainty.py`. "
           f"Method: split conformal, absolute residual in log1p space, target coverage {1 - ALPHA:.0%}. "
           "Calibration rows are always drawn from the training portion of the split.\n",
           "\n`interval_factor` is the calibrated multiplicative half-width (prediction ×/÷ factor). "

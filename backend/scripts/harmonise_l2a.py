@@ -21,7 +21,7 @@ import argparse
 import json
 import logging
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -29,7 +29,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from hydrosentinel import config as C  # noqa: E402
-from hydrosentinel import live, live_global as G  # noqa: E402
+from hydrosentinel import live  # noqa: E402
+from hydrosentinel import live_global as G
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
 log = logging.getLogger("harmonise")
@@ -51,7 +52,7 @@ def site_coords() -> dict[str, tuple[float, float]]:
 
 def pairs_for_site(site: str, lat: float, lon: float, days: int, max_pairs: int) -> list[dict]:
     tile = live.mgrs_tile(lat, lon)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     aqr = {s.datetime_utc.strftime("%Y%m%d"): s for s in live.list_scenes(tile, now.year)
            if s.datetime_utc >= now - timedelta(days=days)}
     l2a = {s.datetime_utc.strftime("%Y%m%d"): s for s in G.stac_search(lat, lon, days=days, max_cloud=80, limit=60)
@@ -108,7 +109,7 @@ def main() -> int:
     result = {
         "method": "median per-band ratio L2A(Sen2Cor, Earth Search) / USGS ACOLITE-DSF AQR over the same 250 m water "
                   "buffer on the same day; live_global divides L2A band means by these factors before scoring",
-        "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "n_pairs": len(pairs), "n_sites": len({p["site_no"] for p in pairs}),
         "factors": factors, "spread": spread, "pairs": pairs,
     }
@@ -116,7 +117,8 @@ def main() -> int:
     log.info("wrote %s (%d pairs, %d sites)", args.out, len(pairs), result["n_sites"])
     print("\nband  factor   IQR")
     for band in C.BANDS:
-        print(f"{band:5s} {factors[band]:6.2f}   {spread[band]['iqr_low']:.2f}–{spread[band]['iqr_high']:.2f}  (n={spread[band]['n']})")
+        sp = spread[band]
+        print(f"{band:5s} {factors[band]:6.2f}   {sp['iqr_low']:.2f}–{sp['iqr_high']:.2f}  (n={sp['n']})")
     return 0
 
 

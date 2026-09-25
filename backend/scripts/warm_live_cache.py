@@ -127,7 +127,8 @@ def main() -> int:
         log.info("[%d/%d] %s", i, len(targets), name)
         r = warm(name, lat, lon, args.force)
         results.append(r)
-        log.info("      %s%s (%.0fs)", r["status"], f" — {r.get('scene_date') or r.get('detail', '')}" if r.get("scene_date") or r.get("detail") else "", r["seconds"])
+        extra = r.get("scene_date") or r.get("detail") or ""
+        log.info("      %s%s (%.0fs)", r["status"], f" — {extra}" if extra else "", r["seconds"])
 
     ok = [r for r in results if r["status"] in ("fetched", "already fresh", "revalidated")]
     print(f"\n{len(ok)}/{len(results)} locations ready")

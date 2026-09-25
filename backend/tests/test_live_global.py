@@ -1,6 +1,6 @@
 """Global (Sentinel-2 L2A) source: masks, offset handling, harmonisation — on synthetic windows, no network."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 import pytest
@@ -11,7 +11,7 @@ from hydrosentinel import live_global as G
 
 def _scene(offset_applied=True):
     assets = {"scl": "https://x/scl.tif", **{a: f"https://x/{a}.tif" for a in G.ASSET_FOR_BAND.values()}}
-    return G.GlobalScene("S2A_43RDQ_20260918_1_L2A", "T43RDQ", "S2A", datetime(2026, 9, 18, tzinfo=timezone.utc),
+    return G.GlobalScene("S2A_43RDQ_20260918_1_L2A", "T43RDQ", "S2A", datetime(2026, 9, 18, tzinfo=UTC),
                          8.0, assets, offset_applied)
 
 

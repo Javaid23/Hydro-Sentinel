@@ -37,9 +37,8 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import schemas
+from hydrosentinel import baseline, data, features, live, live_global, livecache, llm, stress
 from hydrosentinel import config as C
-from hydrosentinel import baseline, data, features, live, live_global, livecache, llm
-from hydrosentinel import stress
 from hydrosentinel.assess import AssessmentService
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
@@ -181,8 +180,11 @@ def site_history(site_id: str):
                         "reference_level": level, "n_reference": int(len(ref)) if ref is not None else 0,
                         "quantiles": q, "histogram": hist}
     spectrum = {b: round(float(o[f"{b}_buf250_mean"].median()), 2) for b in C.BANDS}
-    spectrum_iqr = {b: [round(float(o[f"{b}_buf250_mean"].quantile(.25)), 2), round(float(o[f"{b}_buf250_mean"].quantile(.75)), 2)]
-                    for b in C.BANDS}
+    spectrum_iqr = {
+        b: [round(float(o[f"{b}_buf250_mean"].quantile(.25)), 2),
+            round(float(o[f"{b}_buf250_mean"].quantile(.75)), 2)]
+        for b in C.BANDS
+    }
     out = {"site_no": site_id, "station_nm": str(o["station_nm"].iloc[0]), "basin": basin,
            "n_observations": int(len(o)), "targets": targets,
            "spectrum_median": spectrum, "spectrum_iqr": spectrum_iqr, "band_wavelength_nm": C.BAND_WAVELENGTH_NM}

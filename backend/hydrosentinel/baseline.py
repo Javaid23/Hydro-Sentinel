@@ -31,14 +31,13 @@ import os
 import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from hydrosentinel import config as C
-from hydrosentinel import livecache
 
 log = logging.getLogger(__name__)
 
@@ -193,7 +192,7 @@ def build(lat: float, lon: float, service, target_scenes: int = TARGET_SCENES,
 
     blob = {
         "lat": lat, "lon": lon,
-        "built_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "built_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "n_scenes": len(frame), "n_attempted": attempted,
         "first_scene": str(frame["scene_datetime_utc"].min())[:10],
         "last_scene": str(frame["scene_datetime_utc"].max())[:10],

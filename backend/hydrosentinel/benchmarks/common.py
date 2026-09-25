@@ -34,7 +34,7 @@ class Scaler:
     std: np.ndarray
 
     @classmethod
-    def fit(cls, X: np.ndarray) -> "Scaler":
+    def fit(cls, X: np.ndarray) -> Scaler:
         return cls(mean=X.mean(axis=0), std=X.std(axis=0) + 1e-9)
 
     def transform(self, X: np.ndarray) -> np.ndarray:
@@ -63,7 +63,9 @@ def build_windows(df: pd.DataFrame, X: np.ndarray, window: int, idx: np.ndarray)
             pad = window - len(w)
             seq = np.vstack([np.repeat(X[w[:1]], pad, axis=0), X[w]]) if pad else X[w]
             mask = np.concatenate([np.zeros(pad), np.ones(len(w))])
-            seqs.append(seq); masks.append(mask); kept.append(r)
+            seqs.append(seq)
+            masks.append(mask)
+            kept.append(r)
     if not seqs:
         return np.empty((0, window, X.shape[1])), np.empty((0, window)), np.array([], dtype=int)
     return np.stack(seqs).astype(np.float32), np.stack(masks).astype(np.float32), np.array(kept)

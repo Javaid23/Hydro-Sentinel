@@ -61,7 +61,7 @@ class TargetArtifacts:
     meta: dict
 
     @classmethod
-    def load(cls, tdir: Path) -> "TargetArtifacts":
+    def load(cls, tdir: Path) -> TargetArtifacts:
         meta = json.loads((tdir / "metadata.json").read_text(encoding="utf-8"))
         model = TargetModel.load(tdir / "model.joblib")
         conf = json.loads((tdir / "conformal.json").read_text(encoding="utf-8"))

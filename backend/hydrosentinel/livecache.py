@@ -33,7 +33,7 @@ import logging
 import os
 import tempfile
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -89,7 +89,7 @@ def load(lat: float, lon: float, source: str, max_age_hours: float | None = None
 def save(lat: float, lon: float, source: str, obs: dict, scenes_tried: list) -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     payload = {
-        "fetched_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "fetched_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "fetched_epoch": time.time(),
         "lat": lat, "lon": lon, "source": source,
         "observation": {k: _jsonable(v) for k, v in obs.items() if not k.startswith("_")},
@@ -134,7 +134,7 @@ def touch(lat: float, lon: float, source: str) -> bool:
         return False
     try:
         blob = json.loads(p.read_text(encoding="utf-8"))
-        blob["fetched_utc"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        blob["fetched_utc"] = datetime.now(UTC).isoformat(timespec="seconds")
         blob["fetched_epoch"] = time.time()
         blob["revalidated"] = blob.get("revalidated", 0) + 1
         with tempfile.NamedTemporaryFile("w", dir=CACHE_DIR, delete=False, encoding="utf-8", suffix=".tmp") as fh:
