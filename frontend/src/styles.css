@@ -269,3 +269,16 @@ details.live-note code { font-size: 12px; background: var(--surface-1); padding:
 .verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
 .verdict { border-left: 3px solid var(--border); padding: 4px 0 4px 10px; font-size: 12px; color: var(--text-secondary); }
 .verdict b { display: block; color: var(--text-primary); font-size: 13px; }
+
+/* ---- dark mode: the basemap ----
+   OpenStreetMap serves only light tiles, which glare against the dark surface. Inverting and
+   rotating the hue of the tile pane alone produces a usable dark basemap; markers, popups and
+   controls live in other panes and keep their real colours. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9);
+  }
+}
+:root[data-theme="dark"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9);
+}
