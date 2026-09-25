@@ -6,6 +6,8 @@ connection, minutes on a bad one. A scene's pixels never change, so the result i
 (hydrosentinel/livecache.py) and reused. Run this before recording a demo or presenting.
 
     python backend/scripts/warm_live_cache.py                 # the dashboard presets + top US sites
+                                                              # (re-runs are quick: entries whose scene is
+                                                              #  still the newest are revalidated, not refetched)
     python backend/scripts/warm_live_cache.py --force         # refetch even if a fresh entry exists
     python backend/scripts/warm_live_cache.py --list          # show what is cached, fetch nothing
     python backend/scripts/warm_live_cache.py --coords 31.6083 74.2959 --name "Ravi"
@@ -62,11 +64,24 @@ def warm(name: str, lat: float, lon: float, force: bool) -> dict:
     """Fetch and cache one location, preferring the USGS product where it has coverage."""
     t0 = time.time()
     for src in ("usgs", "global"):
-        if not force:
-            obs, _, stale = livecache.load(lat, lon, src)
-            if obs is not None and not stale:
-                return {"name": name, "status": "already fresh", "source": src,
-                        "scene": obs.get("scene"), "seconds": 0.0}
+        if force:
+            break
+        obs, _, stale = livecache.load(lat, lon, src)
+        if obs is None:
+            continue
+        if not stale:
+            return {"name": name, "status": "already fresh", "source": src,
+                    "scene": obs.get("scene"), "seconds": 0.0}
+        # Stale, but a listing call is far cheaper than re-reading 13 rasters: if the archive has
+        # nothing newer, the cached pixels are still the best answer.
+        try:
+            newest = (live.newest_scene_id(lat, lon) if src == "usgs" else live_global.newest_scene_id(lat, lon))
+        except Exception:  # noqa: BLE001 — fall through to a full fetch
+            newest = None
+        if newest and newest == obs.get("scene"):
+            livecache.touch(lat, lon, src)
+            return {"name": name, "status": "revalidated", "source": src, "scene": obs.get("scene"),
+                    "scene_date": str(obs["scene_datetime_utc"])[:10], "seconds": round(time.time() - t0, 1)}
     try:
         try:
             obs, tried = live.latest_usable(lat, lon)
@@ -114,10 +129,10 @@ def main() -> int:
         results.append(r)
         log.info("      %s%s (%.0fs)", r["status"], f" — {r.get('scene_date') or r.get('detail', '')}" if r.get("scene_date") or r.get("detail") else "", r["seconds"])
 
-    ok = [r for r in results if r["status"] in ("fetched", "already fresh")]
+    ok = [r for r in results if r["status"] in ("fetched", "already fresh", "revalidated")]
     print(f"\n{len(ok)}/{len(results)} locations ready")
     for r in results:
-        if r["status"] not in ("fetched", "already fresh"):
+        if r["status"] not in ("fetched", "already fresh", "revalidated"):
             print(f"  NOT READY  {r['name']}: {r['status']} — {r.get('detail', '')}")
     return 0 if ok else 1
 

@@ -233,3 +233,9 @@ def harmonise(obs: dict, h: dict | None) -> dict:
         "n_pairs": h["n_pairs"], "n_sites": h["n_sites"], "method": h["method"],
     }
     return out
+
+
+def newest_scene_id(lat: float, lon: float) -> str | None:
+    """Id of the most recent L2A scene covering the point — STAC listing only, no pixel reads."""
+    scenes = stac_search(lat, lon, limit=1)
+    return scenes[0].scene_id if scenes else None

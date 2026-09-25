@@ -11,10 +11,17 @@ acquisition datetime, and the dashboard always shows those, so a cached answer i
 indistinguishable from a fresh one *because it is the same answer*. `fetched_utc` records when
 we retrieved it.
 
-Freshness is handled separately: an entry is only reused if no newer usable scene could exist,
-i.e. within `max_age_hours` of the fetch (default 12 h — Sentinel-2 revisit is ~5 days, so this
-is conservative). Past that the cache is consulted only as a fallback when the network fails,
-and the response is marked `stale`.
+Freshness is two-stage, because the expensive part is the pixels, not the listing:
+
+  within `max_age_hours` (default 12 h)   serve the cached entry, no network at all
+  past it                                 ask the imagery archive for the newest scene id — one
+                                          cheap call. Same id as cached? The pixels cannot have
+                                          changed, so reuse them and `touch()` the entry. A newer
+                                          scene? Re-extract.
+  network unavailable                     serve the cached entry anyway, flagged `stale`
+
+This keeps a refresh at a couple of seconds when nothing new has been acquired, instead of
+re-reading 13 windowed rasters to arrive at the same answer.
 
     backend/scripts/warm_live_cache.py pre-fetches the demo presets before a recording.
 """
@@ -114,3 +121,27 @@ def entries() -> list[dict]:
             "age_hours": round((time.time() - b.get("fetched_epoch", 0)) / 3600, 1),
         })
     return out
+
+
+def touch(lat: float, lon: float, source: str) -> bool:
+    """Mark an entry as revalidated now, after confirming its scene is still the newest.
+
+    Only the fetch timestamp changes — the observation is untouched, because the pixels of a
+    given scene are immutable.
+    """
+    p = _path(key(lat, lon, source))
+    if not p.exists():
+        return False
+    try:
+        blob = json.loads(p.read_text(encoding="utf-8"))
+        blob["fetched_utc"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        blob["fetched_epoch"] = time.time()
+        blob["revalidated"] = blob.get("revalidated", 0) + 1
+        with tempfile.NamedTemporaryFile("w", dir=CACHE_DIR, delete=False, encoding="utf-8", suffix=".tmp") as fh:
+            json.dump(blob, fh)
+            tmp = Path(fh.name)
+        tmp.replace(p)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        log.warning("could not revalidate cache entry %s: %s", p.name, exc)
+        return False

@@ -266,3 +266,14 @@ def nwis_readings_for_targets(site_no: str, at: datetime) -> dict[str, dict | No
                 break
         out[key] = found
     return out
+
+
+def newest_scene_id(lat: float, lon: float, tile: str | None = None) -> str | None:
+    """Id of the most recent scene covering the point — a listing only, no pixel reads.
+
+    Used to revalidate a cached extraction cheaply: if this matches what we cached, the imagery
+    has not changed and the cached pixels are still the best available answer.
+    """
+    tile = tile or mgrs_tile(lat, lon)
+    scenes = recent_scenes(tile, n=1)
+    return scenes[-1].scene_id if scenes else None

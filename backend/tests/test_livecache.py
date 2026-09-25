@@ -96,3 +96,32 @@ def test_entries_summary(tmp_cache):
     assert {r["source"] for r in rows} == {"global", "usgs"}
     assert all(r["scene_datetime_utc"].startswith("2026-09-18") for r in rows)
     assert all(r["age_hours"] < 1 for r in rows)
+
+
+def test_touch_refreshes_timestamp_without_changing_the_observation(tmp_cache):
+    import json as _json
+    livecache.save(7.0, 8.0, "usgs", _obs(), [{"scene": "x"}])
+    p = next(tmp_cache.glob("*.json"))
+    blob = _json.loads(p.read_text(encoding="utf-8"))
+    blob["fetched_epoch"] = time.time() - 30 * 3600
+    p.write_text(_json.dumps(blob), encoding="utf-8")
+    before = _json.loads(p.read_text(encoding="utf-8"))["observation"]
+
+    _, _, stale = livecache.load(7.0, 8.0, "usgs")
+    assert stale is True
+
+    assert livecache.touch(7.0, 8.0, "usgs") is True
+    after = _json.loads(p.read_text(encoding="utf-8"))
+    assert after["observation"] == before          # pixels are immutable; only the timestamp moves
+    assert after["revalidated"] == 1
+    obs, tried, stale_now = livecache.load(7.0, 8.0, "usgs")
+    assert stale_now is False and obs["_cache"]["age_hours"] < 1
+    assert tried == [{"scene": "x"}]
+
+    assert livecache.touch(7.0, 8.0, "usgs") is True
+    assert _json.loads(p.read_text(encoding="utf-8"))["revalidated"] == 2
+    assert list(tmp_cache.glob("*.tmp")) == []
+
+
+def test_touch_on_missing_entry_is_false():
+    assert livecache.touch(99.0, 99.0, "global") is False

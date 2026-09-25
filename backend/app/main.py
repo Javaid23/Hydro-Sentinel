@@ -232,10 +232,22 @@ def _fetch_live(lat: float, lon: float, source: str) -> tuple[dict, list, str, d
     """
     for src in (("usgs", "global") if source == "auto" else (source,)):
         obs, tried, stale = livecache.load(lat, lon, src)
-        if obs is not None and not stale:
-            info = obs.pop("_cache")
+        if obs is None:
+            continue
+        info = obs.pop("_cache")
+        if not stale:
             log.info("live cache hit (%s, %.1f h old) at %.4f,%.4f", src, info["age_hours"], lat, lon)
             return obs, tried or [], src, {**info, "stale": False}
+        # Past the freshness window: one listing call is far cheaper than re-reading 13 rasters.
+        try:
+            newest = (live.newest_scene_id(lat, lon) if src == "usgs" else live_global.newest_scene_id(lat, lon))
+        except Exception as exc:  # noqa: BLE001 — fall through to a full fetch, which handles failure
+            log.info("could not revalidate %s cache at %.4f,%.4f: %s", src, lat, lon, exc)
+            newest = None
+        if newest and newest == obs.get("scene"):
+            livecache.touch(lat, lon, src)
+            log.info("live cache revalidated (%s): %s is still the newest scene", src, newest)
+            return obs, tried or [], src, {**info, "stale": False, "revalidated": True}
 
     used, obs, tried = None, None, []
     try:

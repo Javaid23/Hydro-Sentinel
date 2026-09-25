@@ -155,6 +155,7 @@ class CacheInfo(BaseModel):
     fetched_utc: str | None = None
     age_hours: float | None = None
     stale: bool = False
+    revalidated: bool = Field(False, description="Entry was past its freshness window but the archive confirmed no newer scene exists")
     note: str | None = None
 
 
