@@ -113,10 +113,26 @@ backend/
   scripts/          inspect_data, preprocess, evaluate_*, train, warm_live_cache
   tests/            46 tests
 frontend/src/       React dashboard (charts.jsx, panels.jsx, App.jsx)
-models/             trained artifacts, conformal calibration, SHAP, reference distributions
+models/             trained artifacts (committed, ~2 MB, so the API deploys from the repo)
 data/processed/     cleaned per-target tables + observation index
-docs/               PIPELINE.md (end-to-end trace), decisions.md (D1–D7), results/
+docs/               PIPELINE.md (end-to-end trace), decisions.md (D1–D8), results/
 ```
+
+### Model artifacts
+
+Produced by `backend/scripts/train.py` from `data/processed/` and loaded by the API at startup.
+Rebuild with `python backend/scripts/train.py`.
+
+| File | Contents |
+|---|---|
+| `manifest.json` | Training timestamp and per-target summary |
+| `training_bands.json` | Per-band training quantiles, used by the out-of-distribution check |
+| `harmonisation_l2a.json` | Measured L2A → ACOLITE factors for non-US imagery |
+| `<target>/model.joblib` | XGBoost booster plus the log1p transform and feature names |
+| `<target>/conformal.json` | Split-conformal calibration: alpha, q̂ in log space, calibration size |
+| `<target>/reference.joblib` | Site and basin historical distributions used for percentiles |
+| `<target>/global_shap.json` | Mean \|SHAP\| per feature on the fit set |
+| `<target>/metadata.json` | Training sites and basins, coordinates, feature list, notes |
 
 ## Documentation
 
