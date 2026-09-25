@@ -163,7 +163,7 @@ inputs sit. It demonstrates that the pipeline generalises operationally, not tha
 accurate there.
 
 **"How do we know none of this is fabricated?"**
-`python backend/scripts/audit_provenance.py` — 12 mechanical checks covering the serving path, the
+`python backend/scripts/audit_provenance.py` — mechanical checks covering the serving path, the
 data chain from the raw USGS release, the model artifacts, the imagery sources, and the LLM's
 inability to write into the numeric assessment. It is a script rather than a claim so it can be
 re-run at any time.

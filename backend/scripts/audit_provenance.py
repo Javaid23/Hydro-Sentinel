@@ -7,7 +7,7 @@ anyone at any time.
 
     python backend/scripts/audit_provenance.py
 
-Exit code 0 if every check passes, 1 otherwise. Checks:
+Exit code 0 if every check passes, 1 otherwise. What it checks:
 
   1. No fake/mock/placeholder/synthetic content in the serving path
   2. Test doubles exist only under tests/

@@ -17,7 +17,7 @@ Everything under P0 and P1 (Section 21) is built, tested and documented. Start h
 | How does raw data become an assessment? | [docs/PIPELINE.md](docs/PIPELINE.md) — the end-to-end trace |
 | Where did this deviate from the spec, and why? | [docs/decisions.md](docs/decisions.md) — D1 to D10, each with its evidence |
 | Did the models actually work? | [docs/results/model_findings.md](docs/results/model_findings.md) |
-| Is any of it fabricated? | `python backend/scripts/audit_provenance.py` — 12 mechanical checks |
+| Is any of it fabricated? | `python backend/scripts/audit_provenance.py` — mechanical checks, run it |
 
 **Ten decisions are recorded against this spec.** Three are worth knowing before reading further,
 because they change what the code does relative to what is written below:
