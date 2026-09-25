@@ -91,7 +91,7 @@ def main() -> int:
 
     paths = sorted(args.raw_dir.rglob("Matched_WQ_S2*.csv"))
     if not paths:
-        print(f"No Matched_WQ_S2*.csv under {args.raw_dir}. See docs/DATA.md.")
+        print(f"No Matched_WQ_S2*.csv under {args.raw_dir}. See the Data section of README.md.")
         return 1
 
     # Exact header from the first file, without loading it

@@ -37,7 +37,7 @@ def load_raw(raw_dir: Path = C.DATA_RAW) -> pd.DataFrame:
     """Read the release CSVs (selected columns only) and restrict to target parameter codes."""
     paths = sorted(raw_dir.rglob(C.RAW_GLOB))
     if not paths:
-        raise FileNotFoundError(f"No {C.RAW_GLOB} under {raw_dir}; see docs/DATA.md")
+        raise FileNotFoundError(f"No {C.RAW_GLOB} under {raw_dir}; see the Data section of README.md")
     frames = []
     for p in paths:
         t0 = time.time()

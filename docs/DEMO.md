@@ -135,7 +135,7 @@ let the CDOM bars fall off the bottom. One image carries the whole argument.
 |---|---|---|
 | Matched observations after filtering | 9,030 (turbidity 6,160 / chl-a 2,349 / CDOM 521) | [data_findings.md](data_findings.md) |
 | Raw rows processed | 1,748,467 → 14,665 distinct matchups | [data_findings.md](data_findings.md) |
-| Turbidity LOBO | R²_log 0.19 mean, 4 of 5 basins 0.43–0.87 | [results/xgb_baseline.md](results/xgb_baseline.md) |
+| Turbidity LOBO | R²_log 0.19 mean, 4 of 5 basins 0.43–0.87 | [results/model_findings.md](results/model_findings.md) |
 | CDOM site hold-out | R² −14.5 | [results/model_findings.md](results/model_findings.md) |
 | CDOM between-site variance | 91 % | [results/model_findings.md](results/model_findings.md) |
 | Conformal coverage, known sites | ≈ 90 % (target 90 %) | [results/uncertainty.md](results/uncertainty.md) |

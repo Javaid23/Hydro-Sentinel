@@ -160,8 +160,30 @@ Rebuild with `python backend/scripts/train.py`.
 
 ## Data
 
-USGS matched Sentinel-2 aquatic reflectance + continuous water-quality release (Delaware,
-Illinois, Trinity, Upper Colorado, Willamette; 2015–2024; CC0),
-DOI [10.5066/P1A7T4FV](https://doi.org/10.5066/P1A7T4FV). Live imagery from USGS's daily
-ACOLITE-DSF product and the Copernicus Sentinel-2 L2A archive, both public on AWS.
-Details in [docs/DATA.md](docs/DATA.md).
+**Training data.** USGS matched Sentinel-2 aquatic reflectance + continuous water-quality release:
+Delaware, Illinois, Trinity, Upper Colorado and Willamette basins, July 2015 – September 2024, CC0.
+Ball, G.P., and Ducar, S.D., 2025, USGS Idaho Water Science Center.
+DOI [10.5066/P1A7T4FV](https://doi.org/10.5066/P1A7T4FV) ·
+[ScienceBase item](https://www.sciencebase.gov/catalog/item/664bab7ad34e1955f5a47754)
+
+The release ships `Matched_WQ_S2.zip` — two CSVs of CDOM, chlorophyll-a and turbidity measurements
+matched in space and time to Sentinel-2 aquatic-reflectance pixel values (bands 1–8A, 11, 12) — and
+`Aquatic_Reflectance_Extraction_Scripts.zip`, the scripts USGS used to build the matchups
+(reference only).
+
+ScienceBase sits behind a browser bot-check, so download it by hand: open the ScienceBase item,
+take `Matched_WQ_S2.zip`, unzip into `data/raw/` so the CSVs sit at `data/raw/*.csv`, then run
+`python backend/scripts/inspect_data.py`. `data/raw/` is git-ignored and nothing in the release is
+modified in place. What it actually contains and how it was filtered:
+[docs/data_findings.md](docs/data_findings.md), with the full column-level report in
+[docs/data_inspection.md](docs/data_inspection.md).
+
+**Live imagery — never training.** USGS's daily Sentinel-2 ACOLITE-DSF aquatic reflectance product
+for the conterminous US ([AWS registry](https://registry.opendata.aws/usgs_aqr/)) and the
+Copernicus Sentinel-2 L2A archive elsewhere. Both are public on AWS and neither carries
+water-quality labels; they are used only by the regional demonstration mode (spec §18, decision D7).
+
+**Supplementary — not ingested.** A USGS Sentinel-2 + discrete chlorophyll-a release covering
+Oregon, Ohio and Florida (published Feb 2026) would add geographic diversity to the
+leave-one-basin-out evaluation if its columns line up with the primary release. It has not been
+brought in.
