@@ -149,6 +149,12 @@ is computed, and the out-of-distribution panel quantifies how far outside the tr
 inputs sit. It demonstrates that the pipeline generalises operationally, not that the numbers are
 accurate there.
 
+**"How do we know none of this is fabricated?"**
+`python backend/scripts/audit_provenance.py` — 12 mechanical checks covering the serving path, the
+data chain from the raw USGS release, the model artifacts, the imagery sources, and the LLM's
+inability to write into the numeric assessment. It is a script rather than a claim so it can be
+re-run at any time.
+
 **"What stops the LLM from making things up?"**
 It never receives the raw data or the models — only the finished assessment, serialised as text.
 Its prompt forbids inventing or restating numbers differently, forbids causal language for SHAP

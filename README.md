@@ -60,6 +60,20 @@ on a coin flip — [docs/results/benchmark_findings.md](docs/results/benchmark_f
   the Sentinel-2 archive and reported separately as a **Local Anomaly Score**, labelled as model
   output rather than measurements ([docs/decisions.md](docs/decisions.md) D8).
 
+## Verify none of it is fabricated
+
+The claim that every number comes from real measurements is checked mechanically, not asserted:
+
+```bash
+python backend/scripts/audit_provenance.py
+```
+
+It confirms there is no fake/mock/placeholder content in the serving path, that test doubles exist
+only under `tests/`, that every processed row traces to the raw USGS release through an audited
+filter chain, that the models carry real USGS site numbers, that imagery comes from named public
+archives, that the harmonisation factors were measured from real same-day scene pairs, and that
+the LLM cannot write into the numeric assessment. Exit code 0 means all checks passed.
+
 ## Quick start
 
 ```bash
