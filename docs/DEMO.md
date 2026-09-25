@@ -30,6 +30,16 @@ dashboard supports both), Groq key present so the explanation panel is live.
 
 ---
 
+## Scene 0 — Open on the network view (0:00–0:20)
+
+> A water agency runs dozens of monitoring stations. The question each morning is not "what is the
+> turbidity at station 14211720" — it is "which of these need someone to look at them today".
+>
+> HydroSentinel scores every site in the network against its own history in one pass. Forty-nine
+> sites, eighteen carrying an elevated indicator, one in higher stress.
+
+*On screen:* the Network overview, then click the top-ranked site to open its detail.
+
 ## Scene 1 — The problem (0:00–0:30)
 
 > Freshwater monitoring depends on sensors at fixed points. Between those points, and between
@@ -97,8 +107,11 @@ indicator.
 > models saw in training. That's the honest framing: the pipeline works on a new region; the numbers are not
 > validated there.
 
-*On screen:* switch to Regional demo, Ravi preset. Show the "Stress score not available here" card
-and the out-of-distribution panel.
+*On screen:* switch to Regional demo, Ravi preset. Show the Local Anomaly Score built from the
+location's own archive, and the out-of-distribution panel.
+
+Then scroll back to the Network view's validation chart — three designs, left to right harder — and
+let the CDOM bars fall off the bottom. One image carries the whole argument.
 
 ## Scene 6 — Act (3:20–3:50)
 

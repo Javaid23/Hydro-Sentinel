@@ -29,6 +29,8 @@ export const api = {
   assessment: (siteId, observationId, explain) =>
     get(`/assessment/${siteId}`, { observation_id: observationId, explain: explain ? 'true' : undefined }),
   globalImportance: (target, topK = 8) => get(`/models/${target}/global-importance`, { top_k: topK }),
+  network: () => get('/network'),
+  validation: () => get('/validation'),
   history: (siteId) => get(`/sites/${siteId}/history`),
   buildBaseline: (lat, lon) => get('/live/baseline', { lat, lon }),
   liveSite: (siteId, explain) => get(`/live/${siteId}`, { explain: explain ? 'true' : undefined }),

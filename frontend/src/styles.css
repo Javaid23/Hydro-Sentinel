@@ -237,3 +237,35 @@ details.live-note code { font-size: 12px; background: var(--surface-1); padding:
 .baseline-card { border-left: 3px solid var(--status-warning); }
 .baseline-card .number { font-size: 44px; }
 .baseline-card .notice.warn { font-size: 12px; }
+
+/* ---- network overview ---- */
+.span-7 { grid-column: span 7; } .span-5 { grid-column: span 5; }
+@media (max-width: 900px) { .span-7, .span-5 { grid-column: auto; } }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.tile { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; background: var(--surface-2); }
+.tile-n { font-size: 30px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; }
+.tile-l { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+.site-list { display: flex; flex-direction: column; gap: 4px; max-height: 420px; overflow-y: auto; }
+.site-row {
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-1);
+  cursor: pointer; text-align: left; font: inherit; color: inherit;
+}
+.site-row:hover { background: var(--surface-2); }
+.site-row .score { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 28px;
+  border-radius: 6px; color: #fff; font-weight: 700; font-size: 13px; }
+.site-row .who { display: flex; flex-direction: column; min-width: 0; }
+.site-row .nm { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-row .sub2 { font-size: 11px; color: var(--text-muted); }
+.site-row .inds { display: flex; gap: 3px; }
+.mini-chip { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+  border-radius: 5px; font-size: 11px; background: var(--surface-2); color: var(--text-secondary); }
+.mini-chip.Low, .mini-chip.Typical { background: color-mix(in srgb, var(--status-good) 18%, transparent); }
+.mini-chip.Elevated { background: color-mix(in srgb, var(--status-warning) 26%, transparent); }
+.mini-chip.High { background: color-mix(in srgb, var(--status-critical) 24%, transparent); }
+
+.verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
+.verdict { border-left: 3px solid var(--border); padding: 4px 0 4px 10px; font-size: 12px; color: var(--text-secondary); }
+.verdict b { display: block; color: var(--text-primary); font-size: 13px; }

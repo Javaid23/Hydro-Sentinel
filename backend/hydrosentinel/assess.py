@@ -31,7 +31,12 @@ from hydrosentinel import config as C
 from hydrosentinel import features as F
 from hydrosentinel.explain import Explainer
 from hydrosentinel.model import TargetModel
-from hydrosentinel.stress import ReferenceDistribution, indicator_status, stress_score
+from hydrosentinel.stress import (
+    STRESS_STATUS,
+    ReferenceDistribution,
+    indicator_status,
+    stress_score,
+)
 from hydrosentinel.uncertainty import ConformalInterval
 
 # Confidence label per (validation tier, target) — from measured LOBO / site-holdout skill and
@@ -156,6 +161,47 @@ class AssessmentService:
             "model_version": self.manifest["trained_utc"],
         }
 
+    # ------------------------------------------------------------------ batch scoring
+    def score_many(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Predictions, percentiles, statuses and stress score for many observations at once.
+
+        SHAP is skipped — a ranked list does not need per-observation attribution, and computing
+        it for the whole network would dominate the request. Everything else is identical to
+        `assess`, including the leave-one-out rule on each site's own reference distribution.
+        """
+        X = F.build_features(df)
+        out = pd.DataFrame(index=df.index)
+        out["site_no"] = df["site_no"].astype(str).to_numpy()
+        basins = df["basin"].astype(str).to_numpy()
+        pct_cols: dict[str, np.ndarray] = {}
+
+        for key, art in self.targets.items():
+            pred = np.asarray(art.model.predict(X), dtype=float)
+            out[f"{key}_prediction"] = pred.round(3)
+            observed = (df[f"observed_{key}"].to_numpy(dtype=float)
+                        if f"observed_{key}" in df.columns else np.full(len(df), np.nan))
+            pcts, levels = [], []
+            for site, basin, value, obs in zip(out["site_no"], basins, pred, observed, strict=True):
+                got = art.reference.percentile(float(value), site, basin,
+                                               exclude_observed=None if np.isnan(obs) else float(obs))
+                pcts.append(got["percentile"])
+                levels.append(got["reference_level"])
+            pct_cols[key] = np.array([np.nan if p is None else p for p in pcts], dtype=float)
+            out[f"{key}_percentile"] = [None if p is None else round(p, 1) for p in pcts]
+            out[f"{key}_status"] = [indicator_status(p) for p in pcts]
+            out[f"{key}_reference_level"] = levels
+            out[f"{key}_observed"] = [None if np.isnan(v) else round(float(v), 3) for v in observed]
+
+        # equal-weight mean of whichever percentiles exist, matching stress.stress_score
+        stacked = np.vstack([pct_cols[k] for k in self.targets])
+        with np.errstate(invalid="ignore"):
+            score = np.nanmean(stacked, axis=0)
+        n_used = np.sum(~np.isnan(stacked), axis=0)
+        out["stress_score"] = [None if n == 0 else round(float(v), 1) for v, n in zip(score, n_used, strict=True)]
+        out["stress_label"] = [None if n == 0 else _band_label(float(v)) for v, n in zip(score, n_used, strict=True)]
+        out["indicators_used"] = n_used
+        return out
+
     # ------------------------------------------------------------------ out-of-distribution check
     def ood_check(self, obs: pd.Series | dict) -> dict:
         """How far this observation's inputs sit outside the range the models were trained on.
@@ -202,6 +248,14 @@ class AssessmentService:
                             "training_basins": a.meta["training_basins"], "n_sites": len(a.meta["training_sites"]),
                             "conformal": a.meta["conformal"]} for k, a in self.targets.items()},
         }
+
+
+def _band_label(score: float) -> str:
+    """The composite band name for a score — same thresholds stress.stress_score applies."""
+    for upper, name in STRESS_STATUS:
+        if score < upper:
+            return name
+    return STRESS_STATUS[-1][1]
 
 
 def _opt(row: pd.DataFrame, col: str):

@@ -4,6 +4,9 @@ HydroSentinel API.
     GET /health
     GET /models                                   model + calibration metadata
     GET /models/{target}/global-importance        global SHAP importance
+    GET /network                                  every site scored on its latest observation,
+                                                  ranked — the "what needs attention" view
+    GET /validation                                 how the models performed under each split design
     GET /sites                                    monitoring sites with observation counts
     GET /sites/{site_id}/observations             available Sentinel-2 observations for a site
     GET /assessment/{site_id}                     full assessment for the latest (or chosen) observation
@@ -25,6 +28,7 @@ One call to /assessment renders the whole dashboard view.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -46,6 +50,12 @@ log = logging.getLogger("api")
 
 MODELS_DIR = Path(os.getenv("HS_MODELS_DIR", C.MODELS_DIR))
 DATA_DIR = Path(os.getenv("HS_DATA_DIR", C.DATA_PROCESSED))
+VALIDATION_VERDICT = {
+    "turbidity": "Transfers across basins reasonably; the strongest of the three.",
+    "chlorophyll_a": "Usable within regions it has seen; does not transfer to an unseen basin.",
+    "cdom": "Fails on unseen sites — 91% of its variance is between sites, not within them.",
+}
+
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("HS_CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")]
 
 
@@ -117,6 +127,115 @@ def sites(basin: str | None = None, min_observations: int = Query(0, ge=0)):
         )
         for r in s.sort_values(["basin", "station_nm"]).itertuples()
     ]
+
+
+def _nn(v):
+    """NaN -> None. Columns that mix strings with missing values come back from pandas as NaN,
+    which is not JSON and not what the schema declares."""
+    if v is None:
+        return None
+    if isinstance(v, float) and np.isnan(v):
+        return None
+    return v
+
+
+_network_cache: dict | None = None
+
+
+@app.get("/network", response_model=schemas.NetworkOverview)
+def network(basin: str | None = None):
+    """Every monitoring site scored on its most recent archived observation, ranked by stress.
+
+    This is a screening view: one pass over the network to see which sites are unusual relative to
+    their own records, rather than clicking through them one at a time. Each site's assessment uses
+    the same models, references and leave-one-out rule as the detail view; only SHAP is omitted.
+    """
+    global _network_cache
+    if _network_cache is None:
+        obs = state.observations
+        latest = obs.loc[obs.groupby("site_no")["scene_datetime_utc"].idxmax()].reset_index(drop=True)
+        scored = state.service.score_many(latest)
+
+        sites = []
+        for (_, meta), (_, row) in zip(latest.iterrows(), scored.iterrows(), strict=True):
+            indicators = {
+                k: {"prediction": float(row[f"{k}_prediction"]), "percentile": _nn(row[f"{k}_percentile"]),
+                    "status": _nn(row[f"{k}_status"]), "reference_level": str(row[f"{k}_reference_level"]),
+                    "observed": _nn(row[f"{k}_observed"]), "unit": C.TARGETS[k].unit,
+                    "label": C.TARGETS[k].label}
+                for k in C.TARGETS
+            }
+            sites.append({
+                "site_no": str(meta["site_no"]), "station_nm": str(meta["station_nm"]),
+                "basin": str(meta["basin"]), "lat": float(meta["lat"]), "lon": float(meta["lon"]),
+                "observation_id": str(meta["observation_id"]),
+                "scene_datetime_utc": pd.Timestamp(meta["scene_datetime_utc"]).isoformat(),
+                "stress_score": _nn(row["stress_score"]), "stress_label": _nn(row["stress_label"]),
+                "indicators_used": int(row["indicators_used"]),
+                "n_observations": int((obs["site_no"] == meta["site_no"]).sum()),
+                "indicators": indicators,
+            })
+        sites.sort(key=lambda s: (s["stress_score"] is None, -(s["stress_score"] or 0)))
+        dates = [s["scene_datetime_utc"] for s in sites]
+        _network_cache = {
+            "sites": sites,
+            "n_sites": len(sites),
+            "n_scored": sum(s["stress_score"] is not None for s in sites),
+            "counts": {label: sum(s["stress_label"] == label for s in sites)
+                       for _, label in stress.STRESS_STATUS},
+            "elevated": [s["site_no"] for s in sites
+                         if any((i["status"] in ("Elevated", "High")) for i in s["indicators"].values())],
+            "latest_observation": max(dates) if dates else None,
+            "oldest_observation": min(dates) if dates else None,
+            "note": ("Each site is scored on its most recent observation in the labelled archive "
+                     "(2015-2024), not on imagery from today. Use Live mode for a current scene."),
+        }
+    out = dict(_network_cache)
+    if basin:
+        keep = [s for s in out["sites"] if s["basin"].lower() == basin.lower()]
+        out = {**out, "sites": keep, "n_sites": len(keep),
+               "n_scored": sum(s["stress_score"] is not None for s in keep)}
+    return out
+
+
+@app.get("/validation", response_model=schemas.ValidationSummary)
+def validation():
+    """Measured model performance under each split design — the evidence behind the confidence tiers.
+
+    Read from the generated evaluation report so the dashboard cannot state anything the scripts
+    did not produce.
+    """
+    path = C.DOCS_DIR / "results" / "xgb_baseline.json"
+    if not path.exists():
+        raise HTTPException(503, "evaluation results not generated; run scripts/evaluate_xgb.py")
+    rows = json.loads(path.read_text(encoding="utf-8"))["results"]
+    designs = {"random": "Random split", "site_holdout": "Unseen sites", "lobo": "Unseen basin"}
+    targets = {}
+    for key in C.TARGETS:
+        per_design = {}
+        for split, label in designs.items():
+            matching = [r for r in rows if r["target"] == key and r["split"] == split]
+            if not matching:
+                continue
+            per_design[split] = {
+                "label": label,
+                "r2": round(float(np.mean([r["r2"] for r in matching])), 3),
+                "r2_log": round(float(np.mean([r["r2_log"] for r in matching])), 3),
+                "mae": round(float(np.mean([r["mae"] for r in matching])), 2),
+                "n_folds": len(matching),
+                "folds": [{"held_out": r["held_out"], "r2": round(float(r["r2"]), 3),
+                           "r2_log": round(float(r["r2_log"]), 3)} for r in matching],
+            }
+        targets[key] = {"label": C.TARGETS[key].label, "unit": C.TARGETS[key].unit,
+                        "designs": per_design,
+                        "verdict": VALIDATION_VERDICT.get(key, "")}
+    return {
+        "targets": targets,
+        "explanation": ("A random split lets the model see every site during training, so it measures "
+                        "interpolation, not generalisation. Holding out whole sites, then whole basins, "
+                        "is what the deployed confidence tiers are based on."),
+        "source": "docs/results/xgb_baseline.md, generated by backend/scripts/evaluate_xgb.py",
+    }
 
 
 def _site_obs(site_id: str) -> pd.DataFrame:

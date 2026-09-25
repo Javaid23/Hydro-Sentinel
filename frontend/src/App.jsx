@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { api } from './api.js'
 import { StressCard, IndicatorGrid, ShapPanel, UncertaintyPanel, ExplanationPanel, LocalBaselinePanel, fmtDate } from './components/panels.jsx'
 import { HistoryChart, SpectrumChart, SiteMap, MapLegend, OodChart } from './components/charts.jsx'
+import { NetworkOverview } from './components/network.jsx'
 
 export default function App() {
   const [sites, setSites] = useState([])
@@ -17,9 +18,12 @@ export default function App() {
   const [importance, setImportance] = useState(null)
   const [histTarget, setHistTarget] = useState('turbidity')
   const [building, setBuilding] = useState(false)
+  const [network, setNetwork] = useState(null)
+  const [validation, setValidation] = useState(null)
+  const [networkLoading, setNetworkLoading] = useState(false)
   const [mode, setMode] = useState(() => {                  // 'historical' | 'live' | 'coords'; ?mode= preselects
     const m = new URLSearchParams(window.location.search).get('mode')
-    return ['historical', 'live', 'coords'].includes(m) ? m : 'historical'
+    return ['network', 'historical', 'live', 'coords'].includes(m) ? m : 'network'
   })
   // Every preset was verified against live imagery on 2026-09-18 (open water within the 250 m buffer).
   const PRESETS = [
@@ -69,6 +73,7 @@ export default function App() {
   // assessment when the observation / mode changes (?explain=1 in the URL requests the explanation immediately)
   const autoExplain = new URLSearchParams(window.location.search).get('explain') === '1'
   const fetchAssessment = (withExplain) => {
+    if (mode === 'network') return null                 // the overview scores every site itself
     if (mode === 'historical') return (siteId && obsId) ? api.assessment(siteId, obsId, withExplain) : null
     if (mode === 'live') return siteId ? api.liveSite(siteId, withExplain) : null
     return api.liveCoords(Number(coords.lat), Number(coords.lon), coords.name, withExplain)
@@ -84,11 +89,23 @@ export default function App() {
   const retry = () => load(false, setLoading)
   useEffect(() => {
     setAssessment(null); setError(null)
+    if (mode === 'network') return
     if (mode !== 'coords') load(autoExplain, setLoading)
     else if (new URLSearchParams(window.location.search).get('auto') === '1') load(autoExplain, setLoading)  // demo links
   }, [siteId, obsId, mode])
 
   const explain = () => load(true, setExplaining)
+  useEffect(() => {
+    if (mode !== 'network' || network) return
+    setNetworkLoading(true)
+    Promise.all([api.network(), api.validation().catch(() => null)])
+      .then(([n, v]) => { setNetwork(n); setValidation(v) })
+      .catch((e) => setError({ message: e.message, retryable: !!e.retryable }))
+      .finally(() => setNetworkLoading(false))
+  }, [mode])
+
+  const openSite = (siteId) => { setMode('historical'); setSiteId(siteId) }
+
   const buildBaseline = () => {
     setBuilding(true); setError(null)
     api.buildBaseline(Number(coords.lat), Number(coords.lon))
@@ -116,7 +133,7 @@ export default function App() {
       </header>
 
       <div className="modebar">
-        {[['historical', 'Historical (labelled 2015–2024)'], ['live', 'Live — newest Sentinel-2 scene'], ['coords', 'Regional demo — any coordinates']].map(([m, label]) => (
+        {[['network', 'Network overview'], ['historical', 'Site detail (2015–2024)'], ['live', 'Live — newest Sentinel-2 scene'], ['coords', 'Regional demo — any coordinates']].map(([m, label]) => (
           <button key={m} className={mode === m ? 'primary' : 'ghost'} onClick={() => setMode(m)}>{label}</button>
         ))}
       </div>
@@ -154,7 +171,7 @@ export default function App() {
         </div>
       )}
 
-      <div className="controls" style={mode === 'coords' ? { display: 'none' } : undefined}>
+      <div className="controls" style={mode === 'coords' || mode === 'network' ? { display: 'none' } : undefined}>
         <label className="field">Monitoring site
           <select value={siteId} onChange={(e) => setSiteId(e.target.value)}>
             {Object.keys(byBasin).sort().map((b) => (
@@ -225,7 +242,9 @@ export default function App() {
         )
       })()}
 
-      {assessment ? (
+      {mode === 'network' ? (
+        <NetworkOverview network={network} validation={validation} onOpenSite={openSite} loading={networkLoading} />
+      ) : assessment ? (
         <div className="grid">
           <StressCard a={assessment} />
           <section className="card span-4 map-card">

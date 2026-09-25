@@ -257,3 +257,67 @@ class SiteHistory(BaseModel):
     spectrum_median: dict[str, float]
     spectrum_iqr: dict[str, list[float]]
     band_wavelength_nm: dict[str, int]
+
+
+class NetworkIndicator(BaseModel):
+    label: str
+    unit: str
+    prediction: float
+    percentile: float | None = None
+    status: str | None = None
+    reference_level: str
+    observed: float | None = None
+
+
+class NetworkSite(BaseModel):
+    site_no: str
+    station_nm: str
+    basin: str
+    lat: float
+    lon: float
+    observation_id: str
+    scene_datetime_utc: str
+    stress_score: float | None = None
+    stress_label: str | None = None
+    indicators_used: int
+    n_observations: int
+    indicators: dict[str, NetworkIndicator]
+
+
+class NetworkOverview(BaseModel):
+    sites: list[NetworkSite]
+    n_sites: int
+    n_scored: int
+    counts: dict[str, int]
+    elevated: list[str]
+    latest_observation: str | None = None
+    oldest_observation: str | None = None
+    note: str
+
+
+class ValidationFold(BaseModel):
+    held_out: str
+    r2: float
+    r2_log: float
+
+
+class ValidationDesign(BaseModel):
+    label: str
+    r2: float
+    r2_log: float
+    mae: float
+    n_folds: int
+    folds: list[ValidationFold]
+
+
+class ValidationTarget(BaseModel):
+    label: str
+    unit: str
+    designs: dict[str, ValidationDesign]
+    verdict: str
+
+
+class ValidationSummary(BaseModel):
+    targets: dict[str, ValidationTarget]
+    explanation: str
+    source: str

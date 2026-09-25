@@ -13,7 +13,14 @@ AI-Supported Assessment).
 > The system answers: *"What is the estimated current condition, how unusual is it, and what is
 > driving the prediction?"* It does **not** forecast future conditions.
 
-## Three modes
+## Four views
+
+| View | What it answers |
+|---|---|
+| **Network overview** | Which of the 49 monitoring sites need attention right now, ranked, on a map — plus the measured validation evidence behind the numbers |
+| **Site detail** | For one overpass: prediction, how unusual it is against that site's own record, what drove it, how certain it is |
+| **Live** | The same for the newest usable scene from USGS's daily product, with the live sonde reading beside it |
+| **Regional demo** | Any coordinates worldwide, flagged out-of-region, with a Local Anomaly Score built from that location's own archive |
 
 | Mode | Imagery | Ground truth | Validation tier |
 |---|---|---|---|
