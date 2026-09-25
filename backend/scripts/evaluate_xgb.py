@@ -10,7 +10,8 @@ For every target (turbidity, chlorophyll_a, cdom):
 Early stopping uses a validation slice carved from the *training* portion by whole sites,
 so the stopping rule never sees held-out rows.
 
-Writes docs/results/xgb_baseline.md and docs/results/xgb_baseline.json.
+Writes docs/results/xgb_baseline.md (a table, git-ignored) and models/xgb_baseline.json,
+which the /validation endpoint serves and which therefore ships inside the Docker image.
 
 Usage:
     python backend/scripts/evaluate_xgb.py [--targets turbidity chlorophyll_a cdom] [--no-std] [--no-qa]
@@ -107,7 +108,10 @@ def run_target(target: str, include_std: bool, include_qa: bool) -> list[dict]:
 def write_report(rows: list[dict], out_dir: Path, args: argparse.Namespace) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(rows)
-    (out_dir / "xgb_baseline.json").write_text(json.dumps({
+    # The table is documentation; the JSON is what /validation serves, so it ships with the
+    # model artifacts rather than under docs/ (the Docker image copies models/, not docs/).
+    C.MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    (C.MODELS_DIR / "xgb_baseline.json").write_text(json.dumps({
         "generated_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "features": {"include_std": not args.no_std, "include_qa": not args.no_qa},
         "results": rows,
@@ -136,7 +140,7 @@ def write_report(rows: list[dict], out_dir: Path, args: argparse.Namespace) -> N
               "- Negative R² on a LOBO fold means the model does worse than predicting that basin's mean: "
               "the held-out basin's conditions are outside what the other basins taught it.\n")
     (out_dir / "xgb_baseline.md").write_text("".join(md), encoding="utf-8")
-    log.info("wrote %s", out_dir / "xgb_baseline.md")
+    log.info("wrote %s and %s", C.MODELS_DIR / "xgb_baseline.json", out_dir / "xgb_baseline.md")
 
 
 def main() -> int:

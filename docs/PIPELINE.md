@@ -12,7 +12,7 @@ dashboard shows is produced by steps 1–9; step 10 only puts words around them.
 | 4 | **Which targets** — turbidity `63680`; chl-a `32316/32318/62361` (µg/L); CDOM as fDOM `32295` (µg/L QSE). RFU codes excluded | [`backend/hydrosentinel/config.py`](../backend/hydrosentinel/config.py) | [`data_findings.md §2`](data_findings.md) |
 | 5 | **How features were built** — 11 band means, 8 ratios, 3 indices, 11 band stds, red CV, 2 scene-QA counts. No location/time identifiers | [`backend/hydrosentinel/features.py`](../backend/hydrosentinel/features.py) | [`data_findings.md §6`](data_findings.md) |
 | 6 | **How models were trained** — XGBoost per target, log1p target, early stopping on a site-wise slice of the training portion | [`backend/hydrosentinel/model.py`](../backend/hydrosentinel/model.py) | [`results/model_findings.md`](results/model_findings.md) |
-| 7 | **How generalisation was tested** — random split (optimistic), site hold-out, leave-one-basin-out | [`backend/hydrosentinel/evaluation.py`](../backend/hydrosentinel/evaluation.py), [`scripts/evaluate_xgb.py`](../backend/scripts/evaluate_xgb.py) | [`results/model_findings.md`](results/model_findings.md), [`results/xgb_baseline.json`](results/xgb_baseline.json) |
+| 7 | **How generalisation was tested** — random split (optimistic), site hold-out, leave-one-basin-out | [`backend/hydrosentinel/evaluation.py`](../backend/hydrosentinel/evaluation.py), [`scripts/evaluate_xgb.py`](../backend/scripts/evaluate_xgb.py) | [`results/model_findings.md`](results/model_findings.md), [`models/xgb_baseline.json`](../models/xgb_baseline.json) |
 | 7b | **Alternative models** — LSTM (≥ 30-obs sites), FT-Transformer, XGB+FTT stacking, same folds | [`backend/hydrosentinel/benchmarks/`](../backend/hydrosentinel/benchmarks/), [`scripts/evaluate_benchmarks.py`](../backend/scripts/evaluate_benchmarks.py) | [`results/benchmarks.md`](results/benchmarks.md) |
 | 8 | **How uncertainty was calculated** — split conformal, absolute residuals in log1p space, 90 %; coverage measured under every split design | [`backend/hydrosentinel/uncertainty.py`](../backend/hydrosentinel/uncertainty.py), [`scripts/evaluate_uncertainty.py`](../backend/scripts/evaluate_uncertainty.py) | [`results/uncertainty.md`](results/uncertainty.md), [`decisions.md`](decisions.md) D4 |
 | 9 | **How predictions were explained** — SHAP TreeExplainer on the final model; global mean-|SHAP| and per-observation top-k, phrased as contribution | [`backend/hydrosentinel/explain.py`](../backend/hydrosentinel/explain.py) | `models/<target>/global_shap.json` |
@@ -31,7 +31,7 @@ dashboard shows is produced by steps 1–9; step 10 only puts words around them.
 cd backend && python -m venv .venv && .venv/Scripts/activate && pip install -r requirements.txt
 python scripts/inspect_data.py            # docs/data_inspection.md
 python scripts/preprocess.py              # data/processed/*.parquet, docs/preprocess_summary.md
-python scripts/evaluate_xgb.py            # docs/results/xgb_baseline.json (+ .md, git-ignored)
+python scripts/evaluate_xgb.py            # models/xgb_baseline.json (+ a git-ignored .md table)
 python scripts/evaluate_uncertainty.py    # docs/results/uncertainty.md
 python scripts/evaluate_benchmarks.py     # docs/results/benchmarks.md   (needs torch)
 python scripts/train.py                   # models/

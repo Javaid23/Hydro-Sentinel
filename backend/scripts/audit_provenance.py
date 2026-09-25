@@ -18,6 +18,7 @@ Exit code 0 if every check passes, 1 otherwise. What it checks:
   7. The LLM cannot write into the numeric assessment
   8. Stress-score thresholds are defined once, in the backend
   9. Test counts quoted in the docs match what pytest actually collects
+ 10. Every artifact the API serves is inside the Docker image
 """
 
 from __future__ import annotations
@@ -210,6 +211,31 @@ else:
                 stale.append(f"{path.relative_to(ROOT)} says {claimed}, actual {want}")
     check(not stale, "documented test counts match the suite",
           "; ".join(stale) if stale else f"{actual['backend']} backend, {actual['frontend']} frontend")
+
+
+# ----------------------------------------------------------------------- 10
+# The image copies models/ and data/processed but not docs/, so anything the API reads from docs/
+# exists in development and 503s in production. That shipped once; this makes it mechanical.
+dockerfile = (BACKEND / "Dockerfile").read_text(encoding="utf-8")
+copied = [line.split()[1] for line in dockerfile.splitlines()
+          if line.startswith("COPY ") and len(line.split()) >= 3]
+ignored = [ln.strip() for ln in (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
+           if ln.strip() and not ln.startswith("#")]
+
+serving_src = "\n".join(f.read_text(encoding="utf-8") for f in py_files(SERVING))
+reads_docs = re.findall(r"C\.DOCS_DIR", serving_src)
+check(not reads_docs, "the API reads nothing from docs/, which the image excludes",
+      f"{len(reads_docs)} reference(s) to docs/, which .dockerignore excludes" if reads_docs
+      else f"excluded from the image: {ignored}")
+
+# every artifact the API needs must sit under a copied path
+required = ["models/manifest.json", "models/xgb_baseline.json", "models/harmonisation_l2a.json",
+            "data/processed/observations.parquet"]
+missing = [r for r in required
+           if not (ROOT / r).exists()
+           or not any(r == c or r.startswith(c.rstrip("/") + "/") for c in copied)]
+check(not missing, "every artifact the API serves ships in the image",
+      f"not present or not copied: {missing}" if missing else f"{len(required)} artifacts under copied paths")
 
 
 # ----------------------------------------------------------------------- report

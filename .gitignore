@@ -48,8 +48,8 @@ data/baseline_cache/
 docs/results/benchmarks_partial/
 
 # Renderings of results that are committed in machine-readable form — regenerate with the
-# evaluation scripts. xgb_baseline.json is NOT ignored: /validation serves the dashboard from it,
-# and xgb_baseline.md is only that same data as a table.
+# evaluation scripts. The machine-readable copy lives at models/xgb_baseline.json, because
+# /validation serves it and the Docker image copies models/ but not docs/.
 docs/results/benchmarks.json
 docs/results/uncertainty.json
 docs/results/xgb_baseline.md
