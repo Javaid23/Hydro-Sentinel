@@ -72,6 +72,10 @@ above:
 - LSTM / FT-Transformer / stacking benchmarks: done — [benchmark_findings.md](benchmark_findings.md)
   (XGBoost retained; decision D5).
 - SHAP on the final model: done — `models/<target>/global_shap.json`, served per observation.
+- Data-quality sensitivity: done — [data_quality.md](data_quality.md) shows the conclusions hold
+  when provisional measurements are excluded.
 - Not done: hyperparameter search (small grid on depth / learning rate / min_child_weight) and
-  feature ablations (`--no-std`, `--no-qa`). Lagged reflectance features for turbidity at sites
-  with history are the most promising next experiment.
+  feature ablations (`--no-std`, `--no-qa`). Both would tune a result rather than change it; the
+  LOBO gap between targets is an order of magnitude larger than either is likely to move.
+  Lagged reflectance features for turbidity at sites with history remain the most promising
+  experiment, and more chlorophyll-a ground truth the most valuable new data.

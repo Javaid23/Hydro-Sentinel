@@ -109,10 +109,18 @@ Consequences the rest of the pipeline must respect:
 - Not features: `Lat`, `Long`, `site_no`, `huc4`, dates — these would let the model memorise
   location and defeat LOBO.
 
-## 7. Open items
+## 7. Open items — resolved
 
-- Target transform (log1p) for the heavy-tailed turbidity (p50 = 11, p99 = 315, max = 4000) and
-  chl-a — decide during XGBoost baseline by comparing raw vs log fits on validation MAE.
-- Whether to pool provisional (P) with approved (A) records — kept for now; evaluate whether
-  restricting to A changes LOBO metrics.
-- Supplementary Oregon/Ohio/Florida discrete-chl dataset (spec Section 2) not yet inspected.
+- **Target transform.** Settled as `log1p` for all three targets: raw-target turbidity scored
+  R²_log −0.11 against 0.85 for the log fit. See
+  [results/model_findings.md](results/model_findings.md).
+- **Provisional (P) vs approved (A) records.** Both are kept, and that choice was tested rather
+  than assumed: [results/data_quality.md](results/data_quality.md) reruns leave-one-basin-out on
+  approved records only. Turbidity is materially unchanged (R²_log +0.25 against +0.19, a
+  difference far smaller than the spread between basins), chlorophyll-a fails to transfer either
+  way, and CDOM cannot be evaluated at all on approved data — 60 rows in a single basin. Dropping
+  provisional records would shrink the evidence base without making anything more trustworthy.
+- **Supplementary Oregon/Ohio/Florida discrete-chl dataset** (spec Section 2) — not obtained.
+  It would add basins to the chlorophyll-a leave-one-basin-out, which is exactly where that target
+  is weakest, so it remains the most valuable next addition. It requires a separate download and a
+  schema check against this release before it could be used.
