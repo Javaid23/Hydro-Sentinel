@@ -22,6 +22,7 @@ Extraction mirrors live.extract_observation() so the output columns are identica
 
 from __future__ import annotations
 
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -32,6 +33,7 @@ import pandas as pd
 
 from hydrosentinel import config as C
 from hydrosentinel.live import BUFFER_M, GRID_M, NDWI_THRESH, WINDOW, _circle_mask, passes_quality
+from hydrosentinel.netguard import BlockedURL, allowed_url
 
 STAC_SEARCH = "https://earth-search.aws.element84.com/v1/search"
 STAC_COLLECTION = "sentinel-2-l2a"
@@ -47,6 +49,8 @@ ASSET_FOR_BAND = {"B01": "coastal", "B02": "blue", "B03": "green", "B04": "red",
                   "B06": "rededge2", "B07": "rededge3", "B08": "nir", "B8A": "nir08", "B11": "swir16", "B12": "swir22"}
 SCL_FLAGGED = {0, 1, 3, 8, 9, 10, 11}      # nodata, saturated, cloud shadow, cloud med/high, cirrus, snow
 SCL_WATER = 6
+log = logging.getLogger(__name__)
+
 L2A_OFFSET_DN = 1000                        # BOA_ADD_OFFSET (baseline >= 04.00): reflectance = (DN - 1000) * 1e-4.
                                             # Earth Search COGs carry `earthsearch:boa_offset_applied: true`, meaning the
                                             # offset has ALREADY been removed (DN = reflectance * 1e4 directly), despite
@@ -86,12 +90,21 @@ def stac_search(lat: float, lon: float, days: int = 60, max_cloud: float = 60.0,
         p, a = f["properties"], f["assets"]
         if not all(k in a for k in list(ASSET_FOR_BAND.values()) + ["scl"]):
             continue
+        # Asset hrefs are supplied by a third party. Check every one against the imagery
+        # allowlist here, so a compromised or spoofed catalogue cannot steer GDAL elsewhere.
+        try:
+            assets = {k: allowed_url(v["href"]) for k, v in a.items() if isinstance(v.get("href"), str)}
+        except BlockedURL as exc:
+            log.warning("skipping scene %s: %s", f.get("id"), exc)
+            continue
+        if not all(k in assets for k in list(ASSET_FOR_BAND.values()) + ["scl"]):
+            continue
         out.append(GlobalScene(
-            scene_id=f["id"], tile=str(p.get("grid:code", "")).replace("MGRS-", "T"),
+            scene_id=str(f["id"]), tile=str(p.get("grid:code", "")).replace("MGRS-", "T"),
             satellite=str(p.get("platform", "")).replace("sentinel-", "S").upper()[:3],
             datetime_utc=pd.Timestamp(p["datetime"]).tz_convert("UTC").to_pydatetime(),
             cloud_cover=float(p.get("eo:cloud_cover", float("nan"))),
-            assets={k: v["href"] for k, v in a.items()},
+            assets=assets,
             offset_applied=bool(p.get("earthsearch:boa_offset_applied", p.get("s2:boa_offset_applied", True))),
         ))
     return out
@@ -105,6 +118,7 @@ def _read_window_resampled(url: str, lat: float, lon: float) -> tuple[np.ndarray
     from rasterio.enums import Resampling
     from rasterio.windows import Window
 
+    url = allowed_url(url)          # never hand GDAL an address we did not expect
     with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif"):
         with rasterio.open(f"/vsicurl/{url}") as ds:
             x, y = Transformer.from_crs("EPSG:4326", ds.crs, always_xy=True).transform(lon, lat)

@@ -37,11 +37,22 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import schemas
-from hydrosentinel import baseline, data, features, live, live_global, livecache, llm, stress
+from hydrosentinel import (
+    baseline,
+    data,
+    features,
+    limits,
+    live,
+    live_global,
+    livecache,
+    llm,
+    netguard,
+    stress,
+)
 from hydrosentinel import config as C
 from hydrosentinel.assess import AssessmentService
 
@@ -127,6 +138,24 @@ def sites(basin: str | None = None, min_observations: int = Query(0, ge=0)):
         )
         for r in s.sort_values(["basin", "station_nm"]).itertuples()
     ]
+
+
+def _guard(request: Request, limiter: limits.RateLimiter, wait: float = 0.0):
+    """Apply the rate and concurrency limits for an expensive operation.
+
+    Returns a context manager holding a concurrency slot; raises 429 when the caller has used up
+    its allowance or every slot is busy.
+    """
+    caller = request.client.host if request.client else "unknown"
+    try:
+        limiter.check(caller)
+    except limits.RateLimited as exc:
+        raise HTTPException(429, str(exc), headers={"Retry-After": str(exc.retry_after)}) from exc
+    holder = limits.slot(limiter, wait)
+    if not holder.__enter__():
+        raise HTTPException(429, f"{limiter.name} capacity in use ({limiter.max_concurrent} at a time); retry shortly",
+                            headers={"Retry-After": "20"})
+    return holder
 
 
 def _nn(v):
@@ -490,7 +519,7 @@ def live_cache_status():
 
 
 @app.get("/live/baseline")
-def live_baseline(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180),
+def live_baseline(request: Request, lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180),
                   rebuild: bool = False, scenes: int = Query(baseline.TARGET_SCENES, ge=12, le=40)):
     """Build (or return) this location's own reference distribution from the Sentinel-2 archive.
 
@@ -504,6 +533,7 @@ def live_baseline(lat: float = Query(..., ge=-90, le=90), lon: float = Query(...
             return {**blob, "cached": True,
                     "targets": {k: {kk: vv for kk, vv in v.items() if kk != "values"}
                                 for k, v in blob["targets"].items()}}
+    holder = _guard(request, limits.BASELINE)
     try:
         blob = baseline.build(lat, lon, state.service, target_scenes=scenes)
     except LookupError as exc:
@@ -513,6 +543,8 @@ def live_baseline(lat: float = Query(..., ge=-90, le=90), lon: float = Query(...
     except Exception as exc:  # noqa: BLE001
         log.warning("baseline build failed at %.4f,%.4f: %s", lat, lon, exc)
         raise HTTPException(503, f"could not build a baseline ({type(exc).__name__}); retry shortly") from exc
+    finally:
+        holder.__exit__(None, None, None)
     return {**blob, "cached": False,
             "targets": {k: {kk: vv for kk, vv in v.items() if kk != "values"} for k, v in blob["targets"].items()}}
 
@@ -524,21 +556,32 @@ def live_baselines():
 
 
 @app.get("/live/coords", response_model=schemas.LiveAssessment)
-def live_coords(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180),
-                name: str | None = None, explain: bool = False, top_k: int = Query(5, ge=1, le=10),
+def live_coords(request: Request, lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180),
+                name: str | None = Query(None, max_length=200), explain: bool = False,
+                top_k: int = Query(5, ge=1, le=10),
                 source: str = Query("auto", pattern="^(auto|usgs|global)$")):
     """Regional demonstration mode: any coordinates, no site history → out_of_region tier, no percentiles.
     Inside the conterminous US the USGS aquatic-reflectance product is used; elsewhere (or with
     source=global) Sentinel-2 L2A is harmonised to it."""
     key = f"coords:{lat:.4f},{lon:.4f}"
-    return _live_assess(lat, lon, None, name or f"{lat:.4f}, {lon:.4f}", None, explain, top_k, key, source)
+    label = netguard.safe_label(name, f"{lat:.4f}, {lon:.4f}")
+    holder = _guard(request, limits.LIVE)
+    try:
+        return _live_assess(lat, lon, None, label, None, explain, top_k, key, source)
+    finally:
+        holder.__exit__(None, None, None)
 
 
 @app.get("/live/{site_id}", response_model=schemas.LiveAssessment)
-def live_site(site_id: str, explain: bool = False, top_k: int = Query(5, ge=1, le=10)):
+def live_site(request: Request, site_id: str, explain: bool = False, top_k: int = Query(5, ge=1, le=10)):
     """Live assessment at a training-data site: newest usable scene + the site's own reference history."""
     s = state.sites[state.sites["site_no"] == site_id]
     if s.empty:
         raise HTTPException(404, f"unknown site {site_id}")
     r = s.iloc[0]
-    return _live_assess(float(r.lat), float(r.lon), site_id, r.station_nm, r.basin, explain, top_k, f"site:{site_id}")
+    holder = _guard(request, limits.LIVE)
+    try:
+        return _live_assess(float(r.lat), float(r.lon), site_id, r.station_nm, r.basin, explain, top_k,
+                            f"site:{site_id}")
+    finally:
+        holder.__exit__(None, None, None)

@@ -67,6 +67,14 @@ on a coin flip — [docs/results/benchmark_findings.md](docs/results/benchmark_f
   the Sentinel-2 archive and reported separately as a **Local Anomaly Score**, labelled as model
   output rather than measurements ([docs/decisions.md](docs/decisions.md) D8).
 
+## Handling untrusted input
+
+The live paths fetch from third-party archives and accept free text from the query string, so both
+are treated as untrusted ([docs/decisions.md](docs/decisions.md) D9): outbound URLs are checked
+against an imagery-host allowlist before GDAL opens them, location labels are flattened and capped
+before reaching the language model, both caches evict over a size cap, and the expensive endpoints
+carry rate and concurrency limits. `pip-audit` and `npm audit` are clean.
+
 ## Verify none of it is fabricated
 
 The claim that every number comes from real measurements is checked mechanically, not asserted:

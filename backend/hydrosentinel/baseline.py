@@ -50,6 +50,7 @@ SEARCH_LIMIT = 250       # list the whole window, then sample across it (see _sp
 MIN_SPAN_DAYS = 300      # a baseline narrower than this cannot speak to seasonality
 MAX_CLOUD = 40.0
 CONCURRENCY = 4          # scenes in flight; each already parallelises its own 13 reads
+MAX_ENTRIES = int(os.getenv("HS_BASELINE_CACHE_MAX", "200"))   # bound the on-disk set
 
 
 def _key(lat: float, lon: float) -> str:
@@ -77,6 +78,12 @@ def save(lat: float, lon: float, blob: dict) -> None:
         json.dump(blob, fh)
         tmp = Path(fh.name)
     tmp.replace(_path(lat, lon))
+    files = sorted(CACHE_DIR.glob("*.json"), key=lambda f: f.stat().st_mtime)
+    for old in files[: max(0, len(files) - MAX_ENTRIES)]:
+        try:
+            old.unlink()
+        except OSError:  # pragma: no cover
+            pass
 
 
 def entries() -> list[dict]:

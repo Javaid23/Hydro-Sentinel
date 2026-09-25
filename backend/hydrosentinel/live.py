@@ -35,6 +35,7 @@ import numpy as np
 import pandas as pd
 
 from hydrosentinel import config as C
+from hydrosentinel.netguard import allowed_url
 
 log = logging.getLogger(__name__)
 
@@ -125,6 +126,7 @@ def _read_window(url: str, lat: float, lon: float) -> tuple[np.ndarray | None, b
     from pyproj import Transformer
     from rasterio.windows import Window
 
+    url = allowed_url(url)          # never hand GDAL an address we did not expect
     with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif",
                       GDAL_HTTP_MULTIRANGE="YES", GDAL_HTTP_MERGE_CONSECUTIVE_RANGES="YES"):
         with rasterio.open(f"/vsicurl/{url}") as ds:

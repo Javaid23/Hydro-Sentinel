@@ -45,6 +45,9 @@ log = logging.getLogger(__name__)
 
 CACHE_DIR = Path(os.getenv("HS_LIVE_CACHE", C.ROOT_DIR / "data" / "live_cache"))
 MAX_AGE_HOURS = float(os.getenv("HS_LIVE_CACHE_HOURS", "12"))
+# Entries are keyed by coordinate, so an unbounded cache is a disk-fill risk from a public
+# endpoint. Evict the least recently fetched once over the cap.
+MAX_ENTRIES = int(os.getenv("HS_LIVE_CACHE_MAX", "500"))
 
 
 def key(lat: float, lon: float, source: str) -> str:
@@ -102,6 +105,25 @@ def save(lat: float, lon: float, source: str, obs: dict, scenes_tried: list) -> 
         tmp = Path(fh.name)
     tmp.replace(p)
     log.info("cached live observation %s (scene %s)", p.name, obs.get("scene"))
+    _evict(MAX_ENTRIES)
+
+
+def _evict(max_entries: int) -> int:
+    """Drop the least recently fetched entries once the cache exceeds `max_entries`."""
+    files = list(CACHE_DIR.glob("*.json"))
+    if len(files) <= max_entries:
+        return 0
+    files.sort(key=lambda f: f.stat().st_mtime)
+    dropped = 0
+    for f in files[: len(files) - max_entries]:
+        try:
+            f.unlink()
+            dropped += 1
+        except OSError:  # pragma: no cover - another process removed it first
+            pass
+    if dropped:
+        log.info("evicted %d live cache entries over the %d cap", dropped, max_entries)
+    return dropped
 
 
 def entries() -> list[dict]:

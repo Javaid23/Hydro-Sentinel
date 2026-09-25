@@ -121,3 +121,23 @@ def test_validation_reports_the_measured_degradation(client):
     assert cd["random"]["r2"] > 0 > cd["site_holdout"]["r2"], "CDOM must show its site-holdout failure"
     assert v["targets"]["cdom"]["verdict"]
     assert t["lobo"]["n_folds"] >= 4 and len(t["lobo"]["folds"]) == t["lobo"]["n_folds"]
+
+
+def test_expensive_endpoints_are_rate_limited(client):
+    """A public endpoint doing minutes of network work must not be freely repeatable."""
+    from hydrosentinel import limits
+    saved = limits.BASELINE
+    limits.BASELINE = limits.RateLimiter(max_calls=2, window_seconds=600, max_concurrent=1, name="baseline build")
+    try:
+        codes = [client.get("/live/baseline", params={"lat": 0.0, "lon": 0.0}).status_code for _ in range(4)]
+        assert 429 in codes, f"never rate limited: {codes}"
+        blocked = client.get("/live/baseline", params={"lat": 0.0, "lon": 0.0})
+        assert blocked.status_code == 429
+        assert "Retry-After" in blocked.headers
+    finally:
+        limits.BASELINE = saved
+
+
+def test_location_label_is_length_capped_by_the_schema(client):
+    r = client.get("/live/coords", params={"lat": 45.0, "lon": -122.0, "name": "x" * 500})
+    assert r.status_code == 422, "an unbounded free-text field should be rejected at the edge"
