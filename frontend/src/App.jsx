@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { api } from './api.js'
-import { StressCard, IndicatorGrid, ShapPanel, UncertaintyPanel, ExplanationPanel, fmtDate } from './components/panels.jsx'
+import { StressCard, IndicatorGrid, ShapPanel, UncertaintyPanel, ExplanationPanel, LocalBaselinePanel, fmtDate } from './components/panels.jsx'
 import { HistoryChart, SpectrumChart, SiteMap, MapLegend, OodChart } from './components/charts.jsx'
 
 export default function App() {
@@ -16,6 +16,7 @@ export default function App() {
   const [history, setHistory] = useState(null)
   const [importance, setImportance] = useState(null)
   const [histTarget, setHistTarget] = useState('turbidity')
+  const [building, setBuilding] = useState(false)
   const [mode, setMode] = useState(() => {                  // 'historical' | 'live' | 'coords'; ?mode= preselects
     const m = new URLSearchParams(window.location.search).get('mode')
     return ['historical', 'live', 'coords'].includes(m) ? m : 'historical'
@@ -88,6 +89,13 @@ export default function App() {
   }, [siteId, obsId, mode])
 
   const explain = () => load(true, setExplaining)
+  const buildBaseline = () => {
+    setBuilding(true); setError(null)
+    api.buildBaseline(Number(coords.lat), Number(coords.lon))
+      .then(() => load(false, setLoading))               // re-score so the new baseline is attached
+      .catch((e) => setError({ message: e.message, retryable: !!e.retryable }))
+      .finally(() => setBuilding(false))
+  }
   const runCoords = () => { setAssessment(null); load(false, setLoading) }
 
   const byBasin = useMemo(() => {
@@ -229,6 +237,7 @@ export default function App() {
             <MapLegend />
           </section>
           <IndicatorGrid a={assessment} history={mode === 'coords' ? null : history} />
+          <LocalBaselinePanel a={assessment} building={building} onBuild={buildBaseline} />
           {mode !== 'coords' && history && (
             <section className="card span-12">
               <div className="chart-head">

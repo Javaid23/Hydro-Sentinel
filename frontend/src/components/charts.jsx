@@ -228,3 +228,28 @@ export function OodChart({ ood }) {
     </div>
   )
 }
+
+// ---------------------------------------------------------------- local baseline distribution
+export function BaselineHistogram({ target, value, status, unit }) {
+  const h = target?.histogram
+  if (!h?.counts?.length) return null
+  const data = h.counts.map((c, i) => ({
+    i, lo: h.edges[i], hi: h.edges[i + 1], mid: Math.sqrt(Math.max(h.edges[i], 1e-6) * Math.max(h.edges[i + 1], 1e-6)),
+    count: c, isCurrent: value != null && value >= h.edges[i] && value < h.edges[i + 1],
+  }))
+  const statusCol = status === 'High' ? css('--status-critical') : status === 'Elevated' ? css('--status-warning') : css('--seq-450')
+  return (
+    <ResponsiveContainer width="100%" height={96}>
+      <BarChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }} barCategoryGap={2}>
+        <XAxis dataKey="mid" tickFormatter={(v) => (v < 10 ? Number(v).toFixed(1) : fmt(v, 0))}
+          tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} interval={3} />
+        <YAxis hide />
+        <Tooltip contentStyle={tooltipStyle} formatter={(v) => [v, 'past scenes']}
+          labelFormatter={(_, p) => (p?.[0] ? `${fmt(p[0].payload.lo, 1)}–${fmt(p[0].payload.hi, 1)} ${unit}` : '')} />
+        <Bar dataKey="count" isAnimationActive={false} radius={[3, 3, 0, 0]}>
+          {data.map((d) => <Cell key={d.i} fill={d.isCurrent ? statusCol : 'var(--seq-200)'} />)}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}

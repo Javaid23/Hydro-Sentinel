@@ -1,5 +1,5 @@
 import React from 'react'
-import { Gauge, ReferenceHistogram, ImportanceChart } from './charts.jsx'
+import { Gauge, ReferenceHistogram, ImportanceChart, BaselineHistogram } from './charts.jsx'
 
 const fmt = (v, d = 2) => (v == null || Number.isNaN(v) ? '—' : Number(v).toFixed(v >= 100 ? 0 : d))
 const fmtDate = (iso) => (iso ? new Date(iso).toUTCString().replace(':00 GMT', ' UTC') : '—')
@@ -250,3 +250,84 @@ export function ExplanationPanel({ a, loading, onExplain }) {
 }
 
 export { fmt, fmtDate }
+
+
+// ---------------------------------------------------------------- local baseline (out of region)
+export function LocalBaselinePanel({ a, building, onBuild }) {
+  const b = a.local_baseline
+  if (!b) return null
+
+  if (!b.available) {
+    return (
+      <section className="card span-12">
+        <h2>No local baseline yet</h2>
+        <p className="sub">
+          A score needs something to compare against. There are no measurements here, but the Sentinel-2
+          archive still covers this spot — we can run the same models over past scenes and use those
+          estimates as a reference for how unusual today is.
+        </p>
+        <div className="empty">
+          <button className="primary" disabled={building} onClick={onBuild}>
+            {building ? <><span className="spin" />Reading the archive… this takes a few minutes</> : 'Build a baseline from the archive'}
+          </button>
+          <div className="meta" style={{ marginTop: 10, maxWidth: 620, margin: '10px auto 0' }}>
+            Extracts roughly two dozen cloud-free scenes from the last two years at these coordinates.
+            Slow once, then cached. The result is model output, not ground truth — it says how unusual
+            today is for this spot, not whether the values are right.
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  const cls = b.score == null ? '' : b.score >= 70 ? 'high' : b.score >= 40 ? 'mid' : 'low'
+  return (
+    <section className="card span-12 baseline-card">
+      <div className="chart-head">
+        <div>
+          <h2>{b.name} — relative to this location's own satellite record</h2>
+          <p className="sub" style={{ margin: 0 }}>{b.description}</p>
+        </div>
+        <span className="chip tier">{b.n_scenes} scenes · {b.first_scene} to {b.last_scene}</span>
+      </div>
+
+      <div className="hero" style={{ marginBottom: 6 }}>
+        <div>
+          <div className="number">{b.score == null ? '—' : Math.round(b.score)}<small> / 100</small></div>
+          <div className="label">{b.label || '—'}</div>
+        </div>
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <div className="scorebar" role="img" aria-label={`Local anomaly score ${b.score ?? 'unavailable'} of 100`}>
+            <div className={`fill ${cls}`} style={{ width: `${b.score ?? 0}%` }} />
+          </div>
+          <div className="ticks"><span>0 · Lower</span><span>40</span><span>70</span><span>100</span></div>
+          <div className="notice warn" style={{ marginTop: 10 }}>{b.note}</div>
+        </div>
+      </div>
+
+      <div className="indicators" style={{ marginTop: 12 }}>
+        {Object.entries(b.indicators || {}).map(([k, ind]) => (
+          <div className="indicator" key={k}>
+            <div className="name">
+              <span>{ind.label}</span>
+              {ind.status ? <Chip kind={ind.status} icon={STATUS_ICON[ind.status]} text={ind.status} /> : null}
+            </div>
+            <div className="value">{fmt(ind.prediction)}<small>{ind.unit}</small></div>
+            <div className="pbar" role="img" aria-label={`${ind.label} ${ind.percentile} percentile of the local record`}>
+              <div className="fill" style={{ width: `${ind.percentile}%` }} />
+              <div className="marker" style={{ left: `calc(${ind.percentile}% - 1px)` }} />
+            </div>
+            <div className="pbar-caption">
+              <span>{Math.round(ind.percentile)}th percentile here</span>
+              <span>median {fmt(ind.quantiles.p50)} {ind.unit}</span>
+            </div>
+            <BaselineHistogram target={b.targets?.[k]} value={ind.prediction} status={ind.status} unit={ind.unit} />
+          </div>
+        ))}
+      </div>
+      <div className="meta" style={{ fontSize: 12, marginTop: 8 }}>
+        Source: {b.source}. Built {b.built_utc?.slice(0, 10)}.
+      </div>
+    </section>
+  )
+}

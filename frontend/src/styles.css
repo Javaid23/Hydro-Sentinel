@@ -232,3 +232,8 @@ details.live-note code { font-size: 12px; background: var(--surface-1); padding:
 .ood-dot { position: absolute; top: 2px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--seq-600); border: 2px solid var(--surface-1); }
 .ood-dot.outside { background: var(--status-critical); width: 12px; height: 12px; top: 1px; margin-left: -6px; }
 @media (max-width: 640px) { .ood-row { grid-template-columns: 1fr 64px; row-gap: 2px; } .ood-row .lbl { grid-column: 1 / -1; } }
+
+/* ---- local baseline card: visually distinct from the validated stress score ---- */
+.baseline-card { border-left: 3px solid var(--status-warning); }
+.baseline-card .number { font-size: 44px; }
+.baseline-card .notice.warn { font-size: 12px; }
