@@ -8,6 +8,44 @@ This file is the locked specification. Do not deviate from the boundaries below 
 
 ---
 
+## 0. Build status
+
+Everything under P0 and P1 (Section 21) is built, tested and documented. Start here:
+
+| Question | Where |
+|---|---|
+| How does raw data become an assessment? | [docs/PIPELINE.md](docs/PIPELINE.md) — the end-to-end trace |
+| Where did this deviate from the spec, and why? | [docs/decisions.md](docs/decisions.md) — D1 to D8, each with its evidence |
+| Did the models actually work? | [docs/results/model_findings.md](docs/results/model_findings.md) |
+| Is any of it fabricated? | `python backend/scripts/audit_provenance.py` — 12 mechanical checks |
+
+**Eight decisions are recorded against this spec.** Three are worth knowing before reading further,
+because they change what the code does relative to what is written below:
+
+- **D4** — conformal prediction was implemented directly rather than via `mapie`, so calibration
+  happens in the model's own log1p space (Section 8 still governs *what* is required).
+- **D7** — the regional demonstration layer is no longer limited to the USGS conterminous-US
+  product. Outside it, Copernicus Sentinel-2 L2A is used and harmonised to the training product by
+  measured per-band factors. Section 18's labelling rules apply unchanged.
+- **D8** — where no observed history exists, a reference can be built from that location's own
+  satellite archive and reported as a **Local Anomaly Score**. It is never the Freshwater Stress
+  Score of Section 6, never raises the confidence tier, and always states that its reference is
+  model output rather than measurements.
+
+Three capabilities were added that this spec did not anticipate. None relaxes a boundary:
+
+- **Network overview** — every monitoring site scored on its latest observation, ranked and mapped.
+  Uses the same models, references and leave-one-out rule as the single-site view; only SHAP is
+  omitted, because a ranked list does not need per-observation attribution.
+- **Out-of-distribution check** — Section 18 requires saying that inputs at an unseen site may fall
+  outside the trained range. This measures it: each band is placed against the 1st–99th percentile
+  of the training data, and the count outside is shown.
+- **Live extraction cache** — a scene's pixels are immutable, so extractions are cached to disk and
+  revalidated with a cheap scene listing. No effect on what is reported; the scene id and
+  acquisition time are always shown.
+
+---
+
 ## 1. Project Objective
 
 HydroSentinel is a satellite-based, uncertainty-aware freshwater ecosystem assessment system.
@@ -228,7 +266,7 @@ ACT       → LLM-generated interpretation + recommended actions
 
 ## 12. Tech Stack
 
-**Backend:** Python, FastAPI, Pydantic for request/response schemas. XGBoost for models. SHAP for explainability. `mapie` (or equivalent) for conformal prediction. Model artifacts (XGBoost model, SHAP explainer) bundled into the backend's Docker image — no separate model registry needed at this size.
+**Backend:** Python, FastAPI, Pydantic for request/response schemas. XGBoost for models. SHAP for explainability. Split conformal prediction implemented directly (see D4 — `mapie` was the original suggestion, but calibrating in the model's own log1p space is ~40 lines and yields multiplicative intervals that suit these heavy-tailed targets). Model artifacts bundled into the backend's Docker image — no separate model registry needed at this size.
 
 **LLM layer:** Groq API (fast inference, generous free tier). Use a current Groq-hosted model (e.g. a Llama or similar instruct model available on Groq) for the explanation/recommendation layer described in Section 10. Groq's low latency is a genuine advantage for a live demo, the explanation should feel near-instant after the score renders.
 
@@ -306,9 +344,9 @@ If live Sentinel-2 imagery from a non-training region (e.g. Pakistan) is added:
 - Keep it clearly separated from the USGS-trained evaluation pipeline (a distinct mode, not blended into the main dashboard).
 - Label it explicitly: **"Regional Demonstration Mode — using live Sentinel-2 imagery"**.
 - Never label it or imply: **"Validated [Region] water-quality prediction"** — the model has not been validated there unless real regional ground-truth data is later used to test it.
-- Data source for this mode is the dynamic CONUS/global reflectance raster product (Section 2), requiring band extraction at chosen coordinates — a genuinely different data path than the CSV-based training pipeline.
+- Data source for this mode is a live reflectance product requiring band extraction at chosen coordinates — a genuinely different data path than the CSV-based training pipeline. Inside the conterminous US that is USGS's ACOLITE-DSF product (the same processing as the training data); elsewhere it is Copernicus Sentinel-2 L2A, harmonised to it by measured per-band factors (D7). The harmonisation is a stop-gap from 15 same-day pairs at US sites, not a validated cross-calibration, and the interface says so.
 
-**Candidate demo site:** Ravi River Bridge, Ravi Road, Lahore — 31.6083°N, 74.2959°E. A bridge crossing, so reliably over open water rather than a stretch that could be dry or narrow. Verify with an actual Earth Engine pull that the pixel at this coordinate reads as clean water (not mixed land/water) before wiring it into the pipeline.
+**Demo sites:** Ravi River Bridge, Lahore (31.6083°N, 74.2959°E) is wired in and verified against live imagery, along with thirteen other rivers across Pakistan, South and East Asia, Africa, Europe and the Americas. Every preset was checked for open water in the 250 m buffer before being added; candidates that landed off-water (Jhelum at Jhelum, Indus at Attock, Tigris at Baghdad, Niger at Niamey, Amazon at Manaus) were dropped rather than shipped broken.
 
 **Why the output here is not just unlabeled but genuinely uncertain, state this in any demo narration or written docs:** the model is trained exclusively on US river basins. A Pakistani urban river like the Ravi differs in typical sediment load, pollutant profile, and water chemistry, meaning the input values it sees may fall outside the range the model ever learned from (out-of-distribution inputs). There is also no local ground truth to check the prediction against. The honest framing is "the pipeline runs end-to-end on a new region," not "this is an accurate reading of the Ravi River."
 
@@ -361,12 +399,16 @@ Do not claim the system predicts a future crisis. The evidence doesn't support t
 - Visual polish
 
 **P2 — Stretch:**
-- Live regional demonstration mode (Pakistan or other)
-- Citizen-photo verification
-- Experimental "what-if" scenario analysis
-- OneAquaHealth ecosystem integration (Citizen Science App, etc.)
+- Live regional demonstration mode (Pakistan or other) — **built**, worldwide (D7)
+- Citizen-photo verification — not built, deliberately: it would consume time without adding
+  evidence, and reads as an unvalidated bolt-on next to the validated pipeline
+- Experimental "what-if" scenario analysis — not built; see Section 17, the data does not support it
+- OneAquaHealth ecosystem integration (Citizen Science App, etc.) — not built
 
 **Never let P2 work compromise P0.**
+
+**Status:** P0 and P1 complete. The remaining task is deployment (Render + Vercel);
+[docs/DEPLOY.md](docs/DEPLOY.md) covers it.
 
 ---
 
