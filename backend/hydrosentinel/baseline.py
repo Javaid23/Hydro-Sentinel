@@ -47,6 +47,8 @@ MIN_SCENES = 12          # below this a percentile is too coarse to mean anythin
 TARGET_SCENES = 24       # enough for stable quartiles without a long wait
 MAX_ATTEMPTS = 48        # cloud rejects many scenes; cap the work either way
 LOOKBACK_DAYS = 730      # two years covers the seasonal cycle at most latitudes
+SEARCH_LIMIT = 250       # list the whole window, then sample across it (see _spread)
+MIN_SPAN_DAYS = 300      # a baseline narrower than this cannot speak to seasonality
 MAX_CLOUD = 40.0
 CONCURRENCY = 4          # scenes in flight; each already parallelises its own 13 reads
 
@@ -94,6 +96,27 @@ def entries() -> list[dict]:
 
 
 # ----------------------------------------------------------------------------- building
+def _spread(scenes: list, n: int, seed: int = C.RANDOM_STATE) -> list:
+    """Pick `n` scenes spread across the listing's time range, in a deterministic random order.
+
+    Two biases have to be avoided. Taking the newest N collapses the baseline onto recent weeks:
+    at a site where most scenes are cloud-free the build stops after a month of imagery and ends
+    up comparing late monsoon against late monsoon. Keeping the spread sample in date order has
+    the same effect whenever cloud forces an early stop, because the run is truncated at one end.
+
+    So: sample evenly across the window, then shuffle with a fixed seed. Any prefix is then an
+    unbiased sample of the whole period, however many scenes the build gets through.
+    """
+    if len(scenes) <= n:
+        picked = list(scenes)
+    else:
+        ordered = sorted(scenes, key=lambda s: s.datetime_utc)
+        idx = np.unique(np.linspace(0, len(ordered) - 1, n).round().astype(int))
+        picked = [ordered[i] for i in idx]
+    np.random.default_rng(seed).shuffle(picked)
+    return picked
+
+
 def _extract_one(scene, lat: float, lon: float) -> dict | None:
     """One archive scene → a quality-passing observation, or None. Never raises."""
     from hydrosentinel import live_global as G
@@ -117,9 +140,14 @@ def build(lat: float, lon: float, service, target_scenes: int = TARGET_SCENES,
     from hydrosentinel import live_global as G
 
     t0 = time.time()
-    scenes = G.stac_search(lat, lon, days=LOOKBACK_DAYS, max_cloud=MAX_CLOUD, limit=max_attempts)
-    if not scenes:
+    found = G.stac_search(lat, lon, days=LOOKBACK_DAYS, max_cloud=MAX_CLOUD, limit=SEARCH_LIMIT)
+    if not found:
         raise LookupError("no Sentinel-2 scenes cover this location in the archive window")
+    # Sample across the whole window rather than taking the most recent scenes (see _spread).
+    scenes = _spread(found, max_attempts)
+    log.info("baseline at %.4f,%.4f: %d scenes in the archive, trying %d spread over %s..%s",
+             lat, lon, len(found), len(scenes),
+             min(s.datetime_utc for s in found).date(), max(s.datetime_utc for s in found).date())
 
     harmonisation = G.load_harmonisation()
     observations: list[dict] = []
@@ -142,6 +170,7 @@ def build(lat: float, lon: float, service, target_scenes: int = TARGET_SCENES,
                          f"(need {MIN_SCENES}); the location may be cloudy, narrow or not open water")
 
     frame = pd.DataFrame(observations).sort_values("scene_datetime_utc").reset_index(drop=True)
+    span_days = int((frame["scene_datetime_utc"].max() - frame["scene_datetime_utc"].min()).days)
     X = F.build_features(frame)
 
     targets: dict[str, dict] = {}
@@ -169,6 +198,11 @@ def build(lat: float, lon: float, service, target_scenes: int = TARGET_SCENES,
         "first_scene": str(frame["scene_datetime_utc"].min())[:10],
         "last_scene": str(frame["scene_datetime_utc"].max())[:10],
         "lookback_days": LOOKBACK_DAYS,
+        "span_days": span_days,
+        "covers_seasonal_cycle": span_days >= MIN_SPAN_DAYS,
+        "span_warning": (None if span_days >= MIN_SPAN_DAYS else
+                         f"These scenes span only {span_days} days, so the reference reflects one part of "
+                         f"the year. Today is compared with recent conditions, not the full seasonal range."),
         "source": G.SOURCE_LABEL,
         "kind": "model_predictions",
         "note": ("Reference built from this model's own predictions on past Sentinel-2 scenes at these "

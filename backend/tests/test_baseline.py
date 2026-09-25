@@ -80,9 +80,10 @@ def test_build_refuses_when_too_few_scenes_are_usable(monkeypatch):
     """Cloud rejects most scenes at some locations; the result must be an error, not a thin baseline."""
     from hydrosentinel import live_global as G
 
-    class FakeScene:
-        scene_id = "S2A_TEST"
-    monkeypatch.setattr(G, "stac_search", lambda *a, **k: [FakeScene()] * 6)
+    from datetime import datetime, timedelta, timezone
+    base = datetime(2026, 9, 1, tzinfo=timezone.utc)
+    fakes = [_Scene(base - timedelta(days=30 * i)) for i in range(6)]
+    monkeypatch.setattr(G, "stac_search", lambda *a, **k: fakes)
     monkeypatch.setattr(baseline, "_extract_one", lambda scene, lat, lon: None)
     with pytest.raises(ValueError, match="usable scenes"):
         baseline.build(25.7, 32.64, service=None)
@@ -110,3 +111,50 @@ def test_note_states_it_is_not_ground_truth():
     src = inspect.getsource(baseline.build)
     assert "not ground truth" in src
     assert "model_predictions" in src
+
+
+class _Scene:
+    def __init__(self, d):
+        self.datetime_utc, self.scene_id = d, str(d.date())
+
+
+def _archive(n=140, step_days=5):
+    from datetime import datetime, timedelta, timezone
+    now = datetime(2026, 9, 25, tzinfo=timezone.utc)
+    return [_Scene(now - timedelta(days=step_days * i)) for i in range(n)]
+
+
+def test_spread_covers_the_window_not_just_recent_scenes():
+    """Taking the newest N would compare one season against itself — the bias this guards against."""
+    scenes = _archive()
+    full_span = (scenes[0].datetime_utc - scenes[-1].datetime_utc).days
+    picked = baseline._spread(scenes, 24)
+    span = (max(s.datetime_utc for s in picked) - min(s.datetime_utc for s in picked)).days
+    assert len(picked) == 24
+    assert span > 0.8 * full_span                      # spans the archive, not the last few weeks
+
+    newest_24 = sorted(scenes, key=lambda s: s.datetime_utc, reverse=True)[:24]
+    newest_span = (newest_24[0].datetime_utc - newest_24[-1].datetime_utc).days
+    assert span > 4 * newest_span                      # and is far wider than the naive choice
+
+
+def test_any_prefix_of_the_sample_is_still_spread():
+    """Cloud truncates builds early; a prefix must not collapse onto one end of the window."""
+    scenes = _archive()
+    picked = baseline._spread(scenes, 48)
+    for k in (12, 24, 48):
+        ds = [s.datetime_utc for s in picked[:k]]
+        assert (max(ds) - min(ds)).days > 365, f"prefix of {k} spans under a year"
+
+
+def test_spread_is_deterministic_and_lossless_for_short_lists():
+    scenes = _archive(n=10)
+    assert {s.scene_id for s in baseline._spread(scenes, 24)} == {s.scene_id for s in scenes}
+    a = [s.scene_id for s in baseline._spread(_archive(), 24)]
+    b = [s.scene_id for s in baseline._spread(_archive(), 24)]
+    assert a == b
+
+
+def test_narrow_baselines_are_flagged():
+    assert baseline.MIN_SPAN_DAYS >= 300               # must cover most of a year to mean anything
+    assert baseline.SEARCH_LIMIT > baseline.MAX_ATTEMPTS

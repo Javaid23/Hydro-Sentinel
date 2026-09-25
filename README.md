@@ -55,8 +55,10 @@ on a coin flip — [docs/results/benchmark_findings.md](docs/results/benchmark_f
   so the extrapolation is visible rather than asserted.
 - **The LLM cannot touch a number.** It receives the finished assessment as text and returns
   prose; every numeric value on screen comes from the pipeline.
-- **No score where none is defensible.** Out of region there is no local history, so no percentile
-  and no stress score are shown — the predictions and intervals stand alone.
+- **No score where none is defensible.** Out of region there is no observed history, so the
+  Freshwater Stress Score is not computed. Instead the location's own reference can be built from
+  the Sentinel-2 archive and reported separately as a **Local Anomaly Score**, labelled as model
+  output rather than measurements ([docs/decisions.md](docs/decisions.md) D8).
 
 ## Quick start
 

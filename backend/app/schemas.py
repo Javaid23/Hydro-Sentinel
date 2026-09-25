@@ -201,6 +201,9 @@ class LocalBaseline(BaseModel):
     n_scenes: int | None = None
     first_scene: str | None = None
     last_scene: str | None = None
+    span_days: int | None = None
+    covers_seasonal_cycle: bool | None = None
+    span_warning: str | None = None
     built_utc: str | None = None
     score: float | None = None
     label: str | None = None

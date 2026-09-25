@@ -288,7 +288,11 @@ export function LocalBaselinePanel({ a, building, onBuild }) {
           <h2>{b.name} — relative to this location's own satellite record</h2>
           <p className="sub" style={{ margin: 0 }}>{b.description}</p>
         </div>
-        <span className="chip tier">{b.n_scenes} scenes · {b.first_scene} to {b.last_scene}</span>
+        <span className={`chip ${b.covers_seasonal_cycle === false ? 'Elevated' : 'tier'}`}>
+          {b.covers_seasonal_cycle === false ? <span className="dot" aria-hidden="true" /> : null}
+          {b.n_scenes} scenes · {b.first_scene} to {b.last_scene}
+          {b.span_days != null ? ` · ${Math.round(b.span_days / 30)} months` : ''}
+        </span>
       </div>
 
       <div className="hero" style={{ marginBottom: 6 }}>
@@ -302,6 +306,7 @@ export function LocalBaselinePanel({ a, building, onBuild }) {
           </div>
           <div className="ticks"><span>0 · Lower</span><span>40</span><span>70</span><span>100</span></div>
           <div className="notice warn" style={{ marginTop: 10 }}>{b.note}</div>
+          {b.span_warning && <div className="notice warn" style={{ marginTop: 6 }}><b>Narrow window. </b>{b.span_warning}</div>}
         </div>
       </div>
 

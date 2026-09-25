@@ -120,3 +120,34 @@ Outputs at these sites are labelled out-of-region, carry no percentile or stress
 Low / Very low confidence tiers. First results (18 Sep 2026 scenes, late monsoon): turbidity Ravi
 ≈ 400 FNU, Chenab ≈ 160 FNU, Indus at Sukkur ≈ 210 FNU — plausible in rank and magnitude for the
 season, and unverified.
+
+## D8 — Location baselines: a reference built from the archive where no measurements exist (2026-09-25)
+
+Spec Section 6 ranks a prediction against the site's own historical record, falling back to the
+basin's. Out of region there is neither, so the dashboard showed predictions with no way to judge
+them — the regional demonstration mode's weakest point.
+
+`hydrosentinel/baseline.py` builds the missing reference from the only source available at an
+arbitrary coordinate: the Sentinel-2 archive. It extracts ~24 cloud-free scenes at that exact
+point, scores each with the same models, and uses those predictions as the distribution.
+
+**Why this is defensible.** The models are likely biased at an out-of-distribution location, but
+that bias shifts today's prediction and every historical one alike, so it largely cancels in a
+percentile. "Today is turbid for this stretch of the Ravi" survives a systematic error that
+"today is 208 FNU" does not.
+
+**Why it is not the stress score, and is never presented as one.** At training sites the reference
+is *observed sonde readings*; here it is *model output*. The two are different in kind, so the
+result is surfaced as a **Local Anomaly Score** under its own API key (`local_baseline`), on a card
+with its own border and wording, always carrying `kind: "model_predictions"` and a note stating it
+is not ground truth. It never raises the confidence tier — the models remain unvalidated there.
+
+**Sampling.** The first implementation took the newest usable scenes and, because most scenes at
+these sites are cloud-free, stopped after a few weeks of imagery: the Ravi baseline spanned 27 Aug
+to 23 Sep, comparing late monsoon against late monsoon. Scenes are now sampled evenly across a
+two-year window and then shuffled with a fixed seed, so any prefix — builds are truncated whenever
+cloud forces an early stop — remains an unbiased sample of the period. A baseline spanning under
+300 days is flagged in the response and on screen as unable to speak to seasonality.
+
+**Cost.** Roughly 4-8 minutes per location (one extraction per scene), then cached. The dashboard
+offers a button rather than building automatically, so the cost is a deliberate choice.

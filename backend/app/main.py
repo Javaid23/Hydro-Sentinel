@@ -260,6 +260,8 @@ def _attach_baseline(result: dict, lat: float, lon: float) -> dict | None:
         "kind": blob["kind"], "note": blob["note"], "source": blob["source"],
         "n_scenes": blob["n_scenes"], "first_scene": blob["first_scene"], "last_scene": blob["last_scene"],
         "built_utc": blob["built_utc"],
+        "span_days": blob.get("span_days"), "covers_seasonal_cycle": blob.get("covers_seasonal_cycle"),
+        "span_warning": blob.get("span_warning"),
         "score": score["score"], "label": score["label"],
         "indicators": indicators,
         "targets": {k: {"histogram": v["histogram"], "series": v["series"]} for k, v in blob["targets"].items()},
