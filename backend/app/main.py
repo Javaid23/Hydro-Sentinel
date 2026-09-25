@@ -14,6 +14,8 @@ HydroSentinel API.
     GET /live/coords?lat=&lon=                    LIVE at any coordinates (regional demonstration mode;
                                                   out-of-region, unvalidated)
     GET /live/cache                               what live extractions are cached on disk
+    GET /live/baseline?lat=&lon=                  build (or fetch) a location's own reference
+                                                  distribution from the Sentinel-2 archive
 
 Live extractions are cached to disk (hydrosentinel/livecache.py): a scene's pixels never change,
 so a cached answer is the same answer. Pre-fetch demo locations with scripts/warm_live_cache.py.
@@ -36,7 +38,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import schemas
 from hydrosentinel import config as C
-from hydrosentinel import data, features, live, live_global, livecache, llm
+from hydrosentinel import baseline, data, features, live, live_global, livecache, llm
+from hydrosentinel import stress
 from hydrosentinel.assess import AssessmentService
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
@@ -224,6 +227,45 @@ EXTRACTION_NOTE = ("Bands extracted on the fly from the newest usable scene: 250
 _live_cache: dict[str, dict] = {}
 
 
+def _attach_baseline(result: dict, lat: float, lon: float) -> dict | None:
+    """Where today's predictions sit in this location's own satellite record, if one is built.
+
+    Only used where no observation-based reference exists (out of region). It is reported under
+    its own key with its own wording — it never becomes `stress`, and never raises the confidence
+    tier, because the models are still unvalidated here.
+    """
+    if all(i.get("percentile") is not None for i in result["indicators"].values()):
+        return None                      # a real, observation-based reference already applies
+    blob = baseline.load(lat, lon)
+    if not blob:
+        return {"available": False, "reason": "not built for this location yet",
+                "build_url": f"/live/baseline?lat={lat}&lon={lon}"}
+    indicators, pcts = {}, {}
+    for key, ind in result["indicators"].items():
+        got = baseline.percentile_of(blob, key, ind["prediction"])
+        if not got:
+            continue
+        pcts[key] = got["percentile"]
+        indicators[key] = {**got, "status": stress.indicator_status(got["percentile"]),
+                           "prediction": ind["prediction"]}
+    if not indicators:
+        return {"available": False, "reason": "baseline has no usable targets"}
+    score = stress.stress_score(pcts)
+    return {
+        "available": True,
+        "name": "Local Anomaly Score",
+        "description": ("How unusual today's estimates are compared with this model's own estimates at "
+                        "these coordinates across the archive. Not the Freshwater Stress Score: the "
+                        "reference is model output, not measurements."),
+        "kind": blob["kind"], "note": blob["note"], "source": blob["source"],
+        "n_scenes": blob["n_scenes"], "first_scene": blob["first_scene"], "last_scene": blob["last_scene"],
+        "built_utc": blob["built_utc"],
+        "score": score["score"], "label": score["label"],
+        "indicators": indicators,
+        "targets": {k: {"histogram": v["histogram"], "series": v["series"]} for k, v in blob["targets"].items()},
+    }
+
+
 def _fetch_live(lat: float, lon: float, source: str) -> tuple[dict, list, str, dict | None]:
     """Get one live observation, preferring a fresh disk-cached copy.
 
@@ -310,6 +352,7 @@ def _live_assess(lat: float, lon: float, site_no: str | None, station_nm: str | 
             "cache": cached,
             "ood": state.service.ood_check(pd.Series(obs)),
         })
+        result["local_baseline"] = _attach_baseline(result, lat, lon)
         _live_cache[cache_key] = dict(result)
     if explain:
         result["llm_explanation"], result["llm_error"] = _cached_explanation(result["observation"]["observation_id"], result)
@@ -321,6 +364,40 @@ def live_cache_status():
     """What live extractions are cached on disk (scene id, acquisition time, when fetched)."""
     return {"cache_dir": str(livecache.CACHE_DIR), "max_age_hours": livecache.MAX_AGE_HOURS,
             "entries": livecache.entries()}
+
+
+@app.get("/live/baseline")
+def live_baseline(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180),
+                  rebuild: bool = False, scenes: int = Query(baseline.TARGET_SCENES, ge=12, le=40)):
+    """Build (or return) this location's own reference distribution from the Sentinel-2 archive.
+
+    Slow the first time — it extracts and scores past scenes — then cached. Used where no
+    observation-based reference exists; see hydrosentinel/baseline.py for what it does and does
+    not claim.
+    """
+    if not rebuild:
+        blob = baseline.load(lat, lon)
+        if blob:
+            return {**blob, "cached": True,
+                    "targets": {k: {kk: vv for kk, vv in v.items() if kk != "values"}
+                                for k, v in blob["targets"].items()}}
+    try:
+        blob = baseline.build(lat, lon, state.service, target_scenes=scenes)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        log.warning("baseline build failed at %.4f,%.4f: %s", lat, lon, exc)
+        raise HTTPException(503, f"could not build a baseline ({type(exc).__name__}); retry shortly") from exc
+    return {**blob, "cached": False,
+            "targets": {k: {kk: vv for kk, vv in v.items() if kk != "values"} for k, v in blob["targets"].items()}}
+
+
+@app.get("/live/baselines")
+def live_baselines():
+    """Which locations have a baseline built."""
+    return {"cache_dir": str(baseline.CACHE_DIR), "entries": baseline.entries()}
 
 
 @app.get("/live/coords", response_model=schemas.LiveAssessment)

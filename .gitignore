@@ -34,3 +34,6 @@ Thumbs.db
 
 # Live extraction cache (regenerated on demand; warm with scripts/warm_live_cache.py)
 data/live_cache/
+
+# Location baselines built from the satellite archive (rebuild via /live/baseline)
+data/baseline_cache/

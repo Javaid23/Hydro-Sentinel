@@ -179,6 +179,35 @@ class OodCheck(BaseModel):
     reference: str
 
 
+class BaselineIndicator(BaseModel):
+    label: str
+    unit: str
+    prediction: float
+    percentile: float
+    n_reference: int
+    quantiles: dict[str, float]
+    status: str | None = None
+
+
+class LocalBaseline(BaseModel):
+    available: bool
+    reason: str | None = None
+    build_url: str | None = None
+    name: str | None = None
+    description: str | None = None
+    kind: str | None = None
+    note: str | None = None
+    source: str | None = None
+    n_scenes: int | None = None
+    first_scene: str | None = None
+    last_scene: str | None = None
+    built_utc: str | None = None
+    score: float | None = None
+    label: str | None = None
+    indicators: dict[str, BaselineIndicator] | None = None
+    targets: dict | None = None
+
+
 class LiveAssessment(Assessment):
     mode: Literal["live"] = "live"
     source: str = "USGS Sentinel-2 ACOLITE-DSF aquatic reflectance (AWS, updated daily)"
@@ -187,6 +216,9 @@ class LiveAssessment(Assessment):
     cloud_cover: float | None = None
     cache: CacheInfo | None = Field(None, description="Set when the observation came from the disk cache")
     ood: OodCheck | None = Field(None, description="Where this observation's bands sit vs the training range")
+    local_baseline: LocalBaseline | None = Field(
+        None, description="Anomaly reference built from the archive at these coordinates, where no "
+                          "observation-based reference exists. Model output, not ground truth.")
     scenes_tried: list[SceneAttempt]
     live_readings: dict[str, LiveReading | None] = Field(default_factory=dict,
         description="Nearest USGS sonde reading per target at the overpass time (USGS sites only)")
