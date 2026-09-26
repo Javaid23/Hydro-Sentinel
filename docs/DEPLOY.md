@@ -43,7 +43,10 @@ Budget 20–30 minutes end to end, most of it waiting for the first Docker build
    |---|---|
    | `VITE_API_URL` | `https://<your-service>.onrender.com` — no trailing slash |
 
-4. Deploy, then go back to Render and put the Vercel URL into `HS_CORS_ORIGINS`. The browser
+4. **Turn off Deployment Protection**: Project → Settings → Deployment Protection → Vercel
+   Authentication → Disabled. It is on by default, and while it is on every visitor is redirected
+   to `vercel.com/login` — the site is invisible to anyone not signed into your Vercel account.
+5. Deploy, then go back to Render and put the Vercel URL into `HS_CORS_ORIGINS`. The browser
    blocks the API call without it, and the error looks like a dead backend rather than a CORS
    problem — check this first if the deployed dashboard shows "Cannot reach the API".
 

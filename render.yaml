@@ -13,8 +13,11 @@ services:
         sync: false
       - key: GROQ_MODEL
         value: openai/gpt-oss-120b
+      # Set this to the exact origin Vercel gives you, scheme included, no trailing slash.
+      # Do not guess the subdomain: hydro-sentinel.vercel.app belongs to an unrelated project, and
+      # a wrong value here fails as "Cannot reach the API" rather than as a CORS error.
       - key: HS_CORS_ORIGINS
-        value: https://hydro-sentinel.vercel.app,http://localhost:5173
+        sync: false
       # Live extraction cache lives on the ephemeral disk; rebuilt after each spin-down.
       - key: HS_LIVE_CACHE
         value: /app/data/live_cache
