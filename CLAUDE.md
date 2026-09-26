@@ -407,8 +407,9 @@ Do not claim the system predicts a future crisis. The evidence doesn't support t
 
 **Never let P2 work compromise P0.**
 
-**Status:** P0 and P1 complete. The remaining task is deployment (Render + Vercel);
-[docs/DEPLOY.md](docs/DEPLOY.md) covers it.
+**Status:** P0, P1 and the P2 regional demonstration layer are complete and deployed — backend on
+Render, frontend on Vercel, verified end to end from outside the network. The remaining task is the
+demo video. [docs/DEPLOY.md](docs/DEPLOY.md) covers the deployment and its failure modes.
 
 ---
 
