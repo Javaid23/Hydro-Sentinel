@@ -74,6 +74,14 @@ Render URL. Vercel bakes the variable in at build time, so change it *and redepl
 **Explanations say "GROQ_API_KEY not set"** — the key is missing on Render. Every numeric part of
 the dashboard still works; only the prose panel is affected.
 
+**Every live location says "no usable recent scene"** — if this happens at *every* site rather than
+one, it is not weather. rasterio's bundled GDAL loads system libraries at runtime that
+`python:3.11-slim` does not ship; when one is missing the import still succeeds and only the reads
+fail, and because each scene is caught individually the API reports it as cloud cover. The image
+installs `libexpat1` for this reason, and `backend/scripts/check_gdal.py` runs during the build so a
+missing library fails the build instead. If it recurs, read the full 503 detail — it carries the
+per-scene reason, which names the missing library.
+
 **First live request times out** — the imagery archives are public but occasionally slow. The
 dashboard shows a Retry button for this case; the request is also cached once it succeeds.
 
